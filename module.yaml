@@ -1,0 +1,23 @@
+notests *default:
+  build:
+    target: Vostok.Metrics.Aggregations.sln
+    configuration: NoTests
+    tool:
+      name: dotnet
+
+  install:
+    - Vostok.Metrics.Aggregations/bin/Release/netstandard2.0/Vostok.Metrics.Aggregations.dll
+
+  deps:
+    - vostok.zookeeper.client.abstractions
+    - vostok.logging.abstractions
+    - vostok.metrics.hercules
+    - vostok.hercules.client.abstractions
+    - vostok.hercules.consumers
+    - vostok.metrics
+    - vostok.devtools
+
+full-build > notests:
+  build:
+    target: Vostok.Metrics.Aggregations.sln
+    configuration: Release
