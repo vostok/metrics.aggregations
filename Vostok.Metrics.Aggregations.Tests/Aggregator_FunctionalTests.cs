@@ -26,7 +26,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         private readonly TimeSpan period = 1.Seconds();
         private readonly TimeSpan lag = 1.Seconds();
         private readonly int aggregatorsCount = 2;
-        private readonly int sendersCount = 10;
+        private readonly int sendersCount = 4;
         private readonly int sendTimers = 100;
         private HerculesMetricSenderSettings senderSettings;
         private CancellationTokenSource cancellationTokenSource;
