@@ -152,6 +152,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             {
                 var timer = context.CreateTimer($"timer-{sender}");
 
+                var sender1 = sender;
                 Task.Run(
                     async () =>
                     {
@@ -161,6 +162,8 @@ namespace Vostok.Metrics.Aggregations.Tests
                             {
                                 timer.Report(t);
                             });
+
+                            log.Info($"Sender {sender1} reported {sendTimers} timers.");
                             
                             await Task.Delay(0.1.Seconds());
                         }
