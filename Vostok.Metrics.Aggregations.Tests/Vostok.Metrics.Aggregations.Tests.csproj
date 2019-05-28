@@ -1,24 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\vostok.devtools\library-common-props\Test-Project.props" />
   <Import Project="..\..\vostok.devtools\git-commit-to-assembly-title\Vostok.Tools.GitCommit2AssemblyTitle.props" />
-
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.1;net471</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netcoreapp2.1</TargetFrameworks>
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.4.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
     <PackageReference Include="NSubstitute" Version="3.1.0" />
     <PackageReference Include="NUnit" Version="3.10.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="SharpZipLib" Version="1.1.0" />
+    <PackageReference Include="Confluent.Kafka" Version="1.0.0-RC2" />
+    <PackageReference Include="librdkafka.redist" Version="1.0.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Vostok.Metrics.Aggregations\Vostok.Metrics.Aggregations.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Reference Include="Vostok.Hercules.Local">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.hercules.local\Vostok.Hercules.Local\bin\Release\netstandard2.0\Vostok.Hercules.Local.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Logging.Console">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.logging.console\Vostok.Logging.Console\bin\Release\netstandard2.0\Vostok.Logging.Console.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Logging.Abstractions">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.logging.abstractions\Vostok.Logging.Abstractions\bin\Release\netstandard2.0\Vostok.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Hercules.Client">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.hercules.client\Vostok.Hercules.Client\bin\Release\netstandard2.0\Vostok.Hercules.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Hercules.Client.Abstractions">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.hercules.client.abstractions\Vostok.Hercules.Client.Abstractions\bin\Release\netstandard2.0\Vostok.Hercules.Client.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.ClusterClient.Core">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.clusterclient.core\Vostok.ClusterClient.Core\bin\Release\netstandard2.0\Vostok.ClusterClient.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Metrics">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.metrics\Vostok.Metrics\bin\Release\netstandard2.0\Vostok.Metrics.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Metrics.Hercules">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.metrics.hercules\Vostok.Metrics.Hercules\bin\Release\netstandard2.0\Vostok.Metrics.Hercules.dll</HintPath>
+    </Reference>
+    <Reference Include="Vostok.Hercules.Consumers">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\vostok.hercules.consumers\Vostok.Hercules.Consumers\bin\Release\netstandard2.0\Vostok.Hercules.Consumers.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\vostok.commons.testing\Vostok.Commons.Testing\*.cs" LinkBase="Commons\Testing\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\vostok.commons.threading\Vostok.Commons.Threading\ThreadPoolState.cs" Link="Commons\ThreadPoolState.cs" />
+    <Compile Include="..\..\vostok.commons.threading\Vostok.Commons.Threading\ThreadPoolUtility.cs" Link="Commons\ThreadPoolUtility.cs" />
+  </ItemGroup>
 </Project>
