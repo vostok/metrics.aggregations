@@ -16,8 +16,15 @@ notests *default:
     - vostok.hercules.consumers
     - vostok.metrics
     - vostok.devtools
+    - vostok.commons.time/src
 
 full-build > notests:
+  deps:
+    - vostok.commons.testing/src
+    - vostok.hercules.client
+    - vostok.clusterclient.core
+    - vostok.logging.console
+    - vostok.hercules.local
   build:
     target: Vostok.Metrics.Aggregations.sln
     configuration: Release
