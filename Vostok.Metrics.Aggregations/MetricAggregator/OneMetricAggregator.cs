@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
@@ -9,29 +10,50 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class OneMetricAggregator
     {
+        private readonly MetricTags tags;
         private readonly AggregatorSettings settings;
         private readonly ILog log;
-        private readonly Windows windows = new Windows();
+        private readonly Windows windows;
         private readonly IAggregateFunction aggregateFunction;
 
         public OneMetricAggregator(MetricTags tags, AggregatorSettings settings, ILog log)
         {
+            this.tags = tags;
             this.settings = settings;
             this.log = log;
+            windows = new Windows();
             aggregateFunction = settings.AggregateFunctionFactory(tags);
         }
 
-        public bool AddEvent(MetricEvent @event)
+        public bool AddEvent([NotNull] MetricEvent @event)
         {
-            if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
-                return false;
+            try
+            {
+                if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
+                    return false;
 
-            return windows.AddEvent(@event, settings.DefaultPeriod, settings.DefaultLag);
+                return windows.AddEvent(@event, settings.DefaultPeriod, settings.DefaultLag);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to add event {Event}.", @event);
+                return false;
+            }
         }
 
+        [NotNull]
+        [ItemNotNull]
         public IEnumerable<MetricEvent> GetAggregatedMetrics()
         {
-            return windows.TryCloseWindows(aggregateFunction);
+            try
+            {
+                return windows.TryCloseWindows(aggregateFunction);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to aggregate {Metric} metric.", tags);
+                return new List<MetricEvent>();
+            }
         }
     }
 }

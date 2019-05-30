@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
@@ -22,7 +23,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             Lag = lag;
         }
 
-        public bool AddEvent(MetricEvent @event)
+        public bool AddEvent([NotNull] MetricEvent @event)
         {
             if (!@event.Timestamp.InInterval(Start, End))
                 return false;
@@ -32,6 +33,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             return true;
         }
 
+        [NotNull]
         public static Window CreateForTimestamp(DateTimeOffset timestamp, TimeSpan windowSize, TimeSpan lag)
         {
             var start = timestamp.AddTicks(-timestamp.Ticks % windowSize.Ticks);
@@ -44,7 +46,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             return End + Lag <= timestamp;
         }
 
-        public IEnumerable<MetricEvent> AggregateEvents(IAggregateFunction aggregateFunction)
+        [NotNull]
+        [ItemNotNull]
+        public IEnumerable<MetricEvent> AggregateEvents([NotNull] IAggregateFunction aggregateFunction)
         {
             var firstEvent = events.FirstOrDefault();
             if (firstEvent != null)
