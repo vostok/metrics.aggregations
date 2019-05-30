@@ -131,7 +131,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                 {
                     var name = metric.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value;
                     log.Info($"Recieved aggregated metric {name} with count {metric.Value} timestamp {metric.Timestamp}.");
-                    if (metric.Value >= 9*sendTimers)
+                    if (metric.Value >= 7*sendTimers)
                         goodBatches.Add(name);
                 }
 
