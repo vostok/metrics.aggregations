@@ -47,7 +47,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         {
             try
             {
-                return windows.TryCloseWindows(aggregateFunction);
+                return windows.TryCloseWindows(aggregateFunction, DateTimeOffset.Now);
             }
             catch (Exception e)
             {
