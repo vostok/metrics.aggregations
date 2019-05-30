@@ -8,7 +8,8 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     [PublicAPI]
     public interface IAggregateFunction
     {
-        IEnumerable<MetricEvent> Aggregate(IEnumerable<MetricEvent> events, DateTimeOffset timestamp);
+        [NotNull]
+        IEnumerable<MetricEvent> Aggregate([NotNull] [ItemNotNull] IEnumerable<MetricEvent> events, DateTimeOffset timestamp);
 
         void SetUnit([CanBeNull] string newUnit);
 

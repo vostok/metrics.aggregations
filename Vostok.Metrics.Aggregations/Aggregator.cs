@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -68,6 +67,8 @@ namespace Vostok.Metrics.Aggregations
             {
                 aggregatedMetrics.AddRange(aggregator.Value.GetAggregatedMetrics().Select(HerculesEventMetricBuilder.Build));
             }
+
+            // TODO(kungurtsev): do something with old aggregators.
 
             var insertQuery = new InsertEventsQuery(settings.TargetStreamName, aggregatedMetrics);
 
