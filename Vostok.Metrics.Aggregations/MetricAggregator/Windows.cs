@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Models;
+using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
@@ -26,8 +27,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                     return true;
             }
 
-            // TODO(kungurtsev): try read period & lag from event
-            var newWindow = Window.CreateForTimestamp(@event.Timestamp, defaultPeriod, defaultLag);
+            var newWindow = Window.CreateForTimestamp(
+                @event.Timestamp, 
+                @event.AggregationParameters.GetAggregatePeriod() ?? defaultPeriod,
+                @event.AggregationParameters.GetAggregateLag() ?? defaultLag);
+
             newWindow.AddEvent(@event);
             windows.Add(newWindow);
 
@@ -36,8 +40,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         [NotNull]
         [ItemNotNull]
-        public IEnumerable<MetricEvent> TryCloseWindows([NotNull] IAggregateFunction aggregateFunction)
+        public IEnumerable<MetricEvent> TryCloseWindows([NotNull] IAggregateFunction aggregateFunction, DateTimeOffset now)
         {
+            if (maximumObservedTimestamp < now)
+                maximumObservedTimestamp = now;
+
             var result = new List<MetricEvent>();
 
             for (var i = windows.Count - 1; i >= 0; i--)
@@ -55,6 +62,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                 }
             }
 
+            result.Reverse();
             return result;
         }
     }

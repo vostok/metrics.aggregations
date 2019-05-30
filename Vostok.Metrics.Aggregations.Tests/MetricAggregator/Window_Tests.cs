@@ -4,7 +4,6 @@ using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
-using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Models;
@@ -71,7 +70,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 .Should()
                 .BeFalse();
 
-            window.AggregateEvents(new ReturnEvents()).Single().Value.Should().Be(1);
+            window.AggregateEvents(new TestsHelpers.ReturnEvents()).Single().Value.Should().Be(1);
         }
 
         [Test]
@@ -114,7 +113,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 .Should()
                 .BeTrue();
 
-            var aggregate = new ReturnEvents();
+            var aggregate = new TestsHelpers.ReturnEvents();
             window.AggregateEvents(aggregate).Count().Should().Be(2);
             aggregate.Unit.Should().Be("unit1");
             aggregate.Quantiles.Should().BeEquivalentTo(new[] {0.33});
@@ -138,29 +137,10 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 .Should()
                 .BeTrue();
 
-            var aggregate = new ReturnEvents {Unit = "unit", Quantiles = new[] {0.33}};
+            var aggregate = new TestsHelpers.ReturnEvents {Unit = "unit", Quantiles = new[] {0.33}};
             window.AggregateEvents(aggregate).Count().Should().Be(1);
             aggregate.Unit.Should().BeNull();
             aggregate.Quantiles.Should().BeNull();
-        }
-
-        private class ReturnEvents : IAggregateFunction
-        {
-            public string Unit;
-            public double[] Quantiles;
-
-            public IEnumerable<MetricEvent> Aggregate(IEnumerable<MetricEvent> events, DateTimeOffset timestamp) =>
-                events.ToList();
-
-            public void SetUnit(string newUnit)
-            {
-                Unit = newUnit;
-            }
-
-            public void SetQuantiles(double[] newQuantiles)
-            {
-                Quantiles = newQuantiles;
-            }
         }
     }
 }
