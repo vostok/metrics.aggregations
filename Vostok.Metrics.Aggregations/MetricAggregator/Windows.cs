@@ -26,7 +26,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             }
 
             // TODO(kungurtsev): try read period & lag from event
-            windows.Add(Window.CreateWithEvent(@event, defaultPeriod, defaultLag));
+            var newWindow = Window.CreateForTimestamp(@event.Timestamp, defaultPeriod, defaultLag);
+            newWindow.AddEvent(@event);
+            windows.Add(newWindow);
 
             return true;
         }

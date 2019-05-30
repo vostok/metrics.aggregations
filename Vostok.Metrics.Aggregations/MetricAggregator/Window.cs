@@ -4,6 +4,7 @@ using System.Linq;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
+using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
@@ -31,12 +32,10 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             return true;
         }
 
-        public static Window CreateWithEvent(MetricEvent @event, TimeSpan windowSize, TimeSpan lag)
+        public static Window CreateForTimestamp(DateTimeOffset timestamp, TimeSpan windowSize, TimeSpan lag)
         {
-            var timestamp = @event.Timestamp;
             var start = timestamp.AddTicks(-timestamp.Ticks % windowSize.Ticks);
             var result = new Window(start, start + windowSize, lag);
-            result.AddEvent(@event);
             return result;
         }
 
@@ -47,12 +46,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         public IEnumerable<MetricEvent> AggregateEvents(IAggregateFunction aggregateFunction)
         {
-            var someEvent = events.FirstOrDefault();
-            if (someEvent != null)
+            var firstEvent = events.FirstOrDefault();
+            if (firstEvent != null)
             {
-                aggregateFunction.SetUnit(someEvent.Unit);
-                // TODO(kungurtsev): parse quantiles
-                //aggregateFunction.SetQuantiles(someEvent.AggregationParameters);
+                aggregateFunction.SetUnit(firstEvent.Unit);
+                aggregateFunction.SetQuantiles(firstEvent.AggregationParameters.GetQuantiles());
             }
 
             return aggregateFunction.Aggregate(events, End);
