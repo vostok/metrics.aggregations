@@ -3,6 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
+using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Models;
 
@@ -21,7 +22,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
 
             var aggregate = new TestsHelpers.SumValues();
 
-            var result = windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(60)).ToList();
+            var result = windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.ToList();
             result.Count.Should().Be(2);
             result[0].Value.Should().Be(45);
             result[1].Value.Should().Be(46);
@@ -34,7 +35,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
 
             var aggregate = new TestsHelpers.SumValues();
             
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(-100)).Single().Value.Should().Be(45);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
 
             windows.AddEvent(
                     new MetricEvent(
@@ -44,6 +45,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
+                    StreamCoordinates.Empty,
                     windowSize,
                     windowLag)
                 .Should()
@@ -57,12 +59,13 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
+                    StreamCoordinates.Empty,
                     windowSize,
                     windowLag)
                 .Should()
                 .BeTrue();
 
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(60)).Single().Value.Should().Be(146);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Single().Value.Should().Be(146);
         }
 
         [Test]
@@ -80,6 +83,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
+                    StreamCoordinates.Empty,
                     1.Seconds(),
                     2.Seconds())
                 .Should()
@@ -93,48 +97,67 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
+                    StreamCoordinates.Empty,
                     5.Seconds(),
                     4.Seconds())
                 .Should()
                 .BeTrue();
 
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(2)).Should().BeEmpty();
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(3)).Single().Value.Should().Be(1);
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(8)).Should().BeEmpty();
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(9)).Single().Value.Should().Be(2);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(2)).AggregatedEvents.Should().BeEmpty();
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(3)).AggregatedEvents.Single().Value.Should().Be(1);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(8)).AggregatedEvents.Should().BeEmpty();
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(9)).AggregatedEvents.Single().Value.Should().Be(2);
         }
 
         [Test]
-        public void TryCloseWindows_should_close_windows_after_lag_elapsed_using_max_observed_timestamp()
+        public void Aggregate_should_close_windows_after_lag_elapsed_using_max_observed_timestamp()
         {
             var windows = FilledWindows();
 
             var aggregate = new TestsHelpers.SumValues();
 
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(-100)).Single().Value.Should().Be(45);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
         }
 
         [Test]
-        public void TryCloseWindows_should_close_windows_after_lag_elapsed_using_now_timestamp()
+        public void Aggregate_should_close_windows_after_lag_elapsed_using_now_timestamp()
         {
             var windows = FilledWindows();
 
             var aggregate = new TestsHelpers.SumValues();
 
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(-100)).Single().Value.Should().Be(45);
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(22)).Should().BeEmpty();
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(23)).Single().Value.Should().Be(46);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(22)).AggregatedEvents.Should().BeEmpty();
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(23)).AggregatedEvents.Single().Value.Should().Be(46);
         }
 
         [Test]
-        public void TryCloseWindows_should_close_windows_only_once()
+        public void Aggregate_should_calculate_statistic()
         {
             var windows = FilledWindows();
 
             var aggregate = new TestsHelpers.SumValues();
 
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(60)).Count().Should().Be(2);
-            windows.TryCloseWindows(aggregate, TestsHelpers.TimestampWithSeconds(60)).Count().Should().Be(0);
+            var result = windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100));
+            result.AggregatedEvents.Single().Value.Should().Be(45);
+            result.ActiveEventsCount.Should().Be(4);
+            result.ActiveWindowsCount.Should().Be(1);
+            result.FirstActiveEventCoordinates.Should().BeEquivalentTo(new StreamCoordinates(new[] {new StreamPosition
+            {
+                Offset = 10,
+                Partition = 42
+            }}));
+        }
+
+        [Test]
+        public void Aggregate_should_close_windows_only_once()
+        {
+            var windows = FilledWindows();
+
+            var aggregate = new TestsHelpers.SumValues();
+
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Count.Should().Be(2);
+            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Count.Should().Be(0);
         }
 
         private Windows FilledWindows()
@@ -151,6 +174,11 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                             null,
                             null,
                             null),
+                        new StreamCoordinates(new[] {new StreamPosition
+                        {
+                            Offset = seconds,
+                            Partition = 42
+                        }}), 
                         windowSize,
                         windowLag)
                     .Should()

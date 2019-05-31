@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
@@ -25,14 +26,14 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             aggregateFunction = settings.AggregateFunctionFactory(tags);
         }
 
-        public bool AddEvent([NotNull] MetricEvent @event)
+        public bool AddEvent([NotNull] MetricEvent @event, [NotNull] StreamCoordinates coordinates)
         {
             try
             {
                 if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
                     return false;
 
-                return windows.AddEvent(@event, settings.DefaultPeriod, settings.DefaultLag);
+                return windows.AddEvent(@event, coordinates, settings.DefaultPeriod, settings.DefaultLag);
             }
             catch (Exception e)
             {
@@ -42,17 +43,16 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        [ItemNotNull]
-        public IEnumerable<MetricEvent> GetAggregatedMetrics()
+        public AggregateResult Aggregate()
         {
             try
             {
-                return windows.TryCloseWindows(aggregateFunction, DateTimeOffset.Now);
+                return windows.Aggregate(aggregateFunction, DateTimeOffset.Now);
             }
             catch (Exception e)
             {
                 log.Error(e, "Failed to aggregate {Metric} metric.", tags);
-                return new List<MetricEvent>();
+                return new AggregateResult();
             }
         }
     }
