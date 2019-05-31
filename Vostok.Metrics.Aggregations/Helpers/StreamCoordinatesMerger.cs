@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 using Vostok.Hercules.Client.Abstractions.Models;
 
@@ -9,40 +8,36 @@ namespace Vostok.Metrics.Aggregations.Helpers
     internal static class StreamCoordinatesMerger
     {
         [NotNull]
-        public static StreamCoordinates MergeMin([NotNull] StreamCoordinates leftCoordinates, [NotNull] StreamCoordinates rightCoordinates)
+        public static StreamCoordinates MergeMin([NotNull] StreamCoordinates left, [NotNull] StreamCoordinates right)
         {
-            var left = leftCoordinates.ToDictionary();
-            var right = rightCoordinates.ToDictionary();
+            var map = left.ToDictionary();
+            var result = new List<StreamPosition>();
 
-            var merged = new Dictionary<int, StreamPosition>();
-
-            foreach (var key in left.Keys)
+            foreach (var position in right.Positions)
             {
-                if (right.ContainsKey(key))
+                if (map.TryGetValue(position.Partition, out var p))
                 {
-                    merged[key] = new StreamPosition
+                    result.Add(new StreamPosition
                     {
-                        Partition = key,
-                        Offset = Math.Min(left[key].Offset, right[key].Offset)
-                    };
+                        Offset = Math.Min(position.Offset, p.Offset),
+                        Partition = position.Partition
+                    });
                 }
             }
 
-            return new StreamCoordinates(merged.Values.ToArray());
+            return new StreamCoordinates(result.ToArray());
         }
 
-        public static long Distance([NotNull] StreamCoordinates fromCoordinates, [NotNull] StreamCoordinates toCoordinates)
+        public static long Distance([NotNull] StreamCoordinates from, [NotNull] StreamCoordinates to)
         {
-            var from = fromCoordinates.ToDictionary();
-            var to = toCoordinates.ToDictionary();
+            var map = from.ToDictionary();
+            var result = 0L;
 
-            long result = 0;
-
-            foreach (var key in from.Keys)
+            foreach (var position in to.Positions)
             {
-                if (to.ContainsKey(key))
+                if (map.TryGetValue(position.Partition, out var p))
                 {
-                    result += to[key].Offset - from[key].Offset;
+                    result += position.Offset - p.Offset;
                 }
             }
 
