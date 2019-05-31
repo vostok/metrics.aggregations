@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
@@ -15,8 +16,8 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
     [TestFixture]
     internal class Window_Tests
     {
-        private readonly TimeSpan windowSize = 10.Seconds();
-        private readonly TimeSpan windowLag = 3.Seconds();
+        private readonly TimeSpan period = 10.Seconds();
+        private readonly TimeSpan lag = 3.Seconds();
 
         [Test]
         public void Create_should_build_good_interval()
@@ -25,10 +26,11 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
             {
                 var timestamp = TestsHelpers.TimestampWithSeconds(seconds);
 
-                var window = Window.Create(StreamCoordinates.Empty, timestamp, windowSize, windowLag);
+                var window = Window.Create(StreamCoordinates.Empty, timestamp, period, lag);
 
                 timestamp.InInterval(window.Start, window.End).Should().BeTrue();
-                window.Lag.Should().Be(windowLag);
+                window.Lag.Should().Be(lag);
+                window.Period.Should().Be(period);
             }
         }
 
@@ -36,7 +38,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AddEvent_should_check_in_interval()
         {
             // [40, 50)
-            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
 
             window.AddEvent(
                     new MetricEvent(
@@ -78,7 +80,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void ShouldBeClosedBefore_should_return_if_lag_elapsed()
         {
             // [40, 50)
-            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
 
             window.ShouldBeClosedBefore(TestsHelpers.TimestampWithSeconds(52)).Should().BeFalse();
             window.ShouldBeClosedBefore(TestsHelpers.TimestampWithSeconds(53)).Should().BeTrue();
@@ -86,10 +88,23 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         }
 
         [Test]
+        public void TooLongExists_should_return_if_time_elapsed()
+        {
+            // [40, 50)
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), 0.1.Seconds(), 0.1.Seconds());
+
+            window.TooLongExists().Should().BeFalse();
+            Thread.Sleep(0.1.Seconds());
+            window.TooLongExists().Should().BeFalse();
+            Thread.Sleep(0.1.Seconds());
+            window.TooLongExists().Should().BeTrue();
+        }
+
+        [Test]
         public void AggregateEvents_should_pass_unit_and_quantiles_from_first_event()
         {
             // [40, 50)
-            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
 
             window.AddEvent(
                     new MetricEvent(
@@ -124,7 +139,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AggregateEvents_should_pass_null_unit_and_quantiles()
         {
             // [40, 50)
-            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
 
             window.AddEvent(
                     new MetricEvent(

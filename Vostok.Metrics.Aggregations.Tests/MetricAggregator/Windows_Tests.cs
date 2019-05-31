@@ -12,8 +12,8 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
     [TestFixture]
     internal class Windows_Tests
     {
-        private readonly TimeSpan windowSize = 10.Seconds();
-        private readonly TimeSpan windowLag = 3.Seconds();
+        private readonly TimeSpan period = 10.Seconds();
+        private readonly TimeSpan lag = 3.Seconds();
 
         [Test]
         public void AddEvent_should_build_windows()
@@ -46,8 +46,8 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null),
                     StreamCoordinates.Empty,
-                    windowSize,
-                    windowLag)
+                    period,
+                    lag)
                 .Should()
                 .BeFalse();
 
@@ -60,8 +60,8 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null),
                     StreamCoordinates.Empty,
-                    windowSize,
-                    windowLag)
+                    period,
+                    lag)
                 .Should()
                 .BeTrue();
 
@@ -179,8 +179,8 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                             Offset = seconds,
                             Partition = 42
                         }}), 
-                        windowSize,
-                        windowLag)
+                        period,
+                        lag)
                     .Should()
                     .BeTrue();
             }

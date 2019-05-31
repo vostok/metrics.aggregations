@@ -15,22 +15,26 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         public readonly StreamCoordinates FirstEventCoordinates;
         public readonly DateTimeOffset Start;
         public readonly DateTimeOffset End;
+        public readonly TimeSpan Period;
         public readonly TimeSpan Lag;
+        private readonly DateTimeOffset createdAt;
         private readonly List<MetricEvent> events = new List<MetricEvent>();
 
-        private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan lag)
+        private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
             FirstEventCoordinates = firstEventCoordinates;
             Start = start;
             End = end;
+            Period = period;
             Lag = lag;
+            createdAt = DateTimeOffset.Now;
         }
 
         [NotNull]
-        public static Window Create(StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan windowSize, TimeSpan lag)
+        public static Window Create(StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan period, TimeSpan lag)
         {
-            var start = timestamp.AddTicks(-timestamp.Ticks % windowSize.Ticks);
-            var result = new Window(firstEventCoordinates, start, start + windowSize, lag);
+            var start = timestamp.AddTicks(-timestamp.Ticks % period.Ticks);
+            var result = new Window(firstEventCoordinates, start, start + period, period, lag);
             return result;
         }
 
@@ -49,6 +53,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         public bool ShouldBeClosedBefore(DateTimeOffset timestamp)
         {
             return End + Lag <= timestamp;
+        }
+
+        public bool TooLongExists()
+        {
+            return DateTimeOffset.Now - createdAt > Period + Lag;
         }
 
         [NotNull]
