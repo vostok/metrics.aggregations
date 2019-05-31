@@ -11,9 +11,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         public StreamCoordinates FirstActiveEventCoordinates;
 
-        public int ActiveEventsCount;
+        public long ActiveEventsCount;
 
-        public int ActiveWindowsCount;
+        public long ActiveWindowsCount;
 
         public void AddActiveWindow(Window window)
         {
@@ -30,7 +30,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             ActiveWindowsCount += other.ActiveWindowsCount;
         }
 
-        private void AddActiveCoordinates(StreamCoordinates coordinates)
+        public void AddActiveCoordinates(StreamCoordinates coordinates)
         {
             FirstActiveEventCoordinates = FirstActiveEventCoordinates == null 
                 ? coordinates 

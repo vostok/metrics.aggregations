@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Logging.Abstractions;
+using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
@@ -36,7 +38,10 @@ namespace Vostok.Metrics.Aggregations
             )
             {
                 AutoSaveCoordinates = false,
-                EventsBatchSize = settings.EventsBatchSize 
+                EventsBatchSize = settings.EventsBatchSize,
+                DelayOnError = settings.DelayOnError,
+                DelayOnNoEvents = settings.DelayOnNoEvents,
+                EventsReadTimeout = settings.EventsReadTimeout
             };
 
             consumer = new StreamConsumer(streamConsumerSettings, log);
@@ -48,7 +53,7 @@ namespace Vostok.Metrics.Aggregations
             return consumer.RunAsync(cancellationToken);
         }
 
-        private async Task HandleAsync(StreamCoordinates coordinates, IList<HerculesEvent> herculesEvents, CancellationToken cancellationToken)
+        private async Task HandleAsync(ReadStreamQuery query, IList<HerculesEvent> herculesEvents, CancellationToken cancellationToken)
         {
             var events = herculesEvents.Select(HerculesMetricEventFactory.CreateFrom).ToList();
             var droppedEvents = 0;
@@ -57,7 +62,7 @@ namespace Vostok.Metrics.Aggregations
             {
                 if (!aggregators.ContainsKey(@event.Tags))
                     aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
-                if (!aggregators[@event.Tags].AddEvent(@event, coordinates))
+                if (!aggregators[@event.Tags].AddEvent(@event, query.Coordinates))
                     droppedEvents++;
             }
 
@@ -67,6 +72,9 @@ namespace Vostok.Metrics.Aggregations
             {
                 result.AddAggregateResult(aggregator.Value.Aggregate());
             }
+
+            if (result.FirstActiveEventCoordinates == null)
+                result.AddActiveCoordinates(query.Coordinates);
 
             // TODO(kungurtsev): do something with old aggregators.
 
@@ -80,14 +88,25 @@ namespace Vostok.Metrics.Aggregations
 
             insertResult.EnsureSuccess();
 
-            LogProgress(events, result, droppedEvents);
+            await LogProgress(query, events, result, droppedEvents).ConfigureAwait(false);
 
-#pragma warning disable 4014
-            Task.Run(() => settings.CoordinatesStorage.AdvanceAsync(coordinates), cancellationToken);
-#pragma warning restore 4014
+            await SaveProgressAsync(result.FirstActiveEventCoordinates).ConfigureAwait(false);
+        }
+        
+        private async Task SaveProgressAsync(StreamCoordinates coordinates)
+        {
+            try
+            {
+                await settings.CoordinatesStorage.AdvanceAsync(coordinates).ConfigureAwait(false);
+                log.Info("Saved coordinates to storage: {StreamCoordinates}.", coordinates);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save {Coordinates} coordinates.", coordinates);
+            }
         }
 
-        private void LogProgress(List<MetricEvent> @in, AggregateResult result, int dropped)
+        private async Task LogProgress(ReadStreamQuery query, List<MetricEvent> @in, AggregateResult result, int dropped)
         {
             log.Info(
                 "Global aggregator progress: events in: {EventsIn}, events out: {EventsOut}, events dropped: {EventsDropped}.",
@@ -100,6 +119,33 @@ namespace Vostok.Metrics.Aggregations
                 aggregators.Count,
                 result.ActiveWindowsCount,
                 result.ActiveEventsCount);
+
+            var end = await GetEndCoordinates(query).ConfigureAwait(false);
+            if (end != null)
+            {
+                var remainingEvents = StreamCoordinatesMerger.Distance(query.Coordinates, end) - @in.Count;
+                log.Info("Global aggregator progress: remaining events: {EventsRemaining}.", remainingEvents);
+            }
+        }
+
+        private async Task<StreamCoordinates> GetEndCoordinates(ReadStreamQuery query)
+        {
+            try
+            {
+                var seekToEndQuery = new SeekToEndStreamQuery(settings.SourceStreamName)
+                {
+                    ClientShard = query.ClientShard,
+                    ClientShardCount = query.ClientShardCount
+                };
+                var end = await settings.StreamClient.SeekToEndAsync(seekToEndQuery, settings.EventsReadTimeout).ConfigureAwait(false);
+
+                return end.Payload.Next;
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to count remaining events.");
+                return null;
+            }
         }
     }
 }

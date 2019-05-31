@@ -30,5 +30,23 @@ namespace Vostok.Metrics.Aggregations.Helpers
 
             return new StreamCoordinates(merged.Values.ToArray());
         }
+
+        public static long Distance([NotNull] StreamCoordinates fromCoordinates, [NotNull] StreamCoordinates toCoordinates)
+        {
+            var from = fromCoordinates.ToDictionary();
+            var to = toCoordinates.ToDictionary();
+
+            long result = 0;
+
+            foreach (var key in from.Keys)
+            {
+                if (to.ContainsKey(key))
+                {
+                    result += to[key].Offset - from[key].Offset;
+                }
+            }
+
+            return result;
+        }
     }
 }
