@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
+using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Models;
@@ -18,13 +19,13 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         private readonly TimeSpan windowLag = 3.Seconds();
 
         [Test]
-        public void CreateForTimestamp_should_build_good_interval()
+        public void Create_should_build_good_interval()
         {
             for (var seconds = 0; seconds < 120; seconds++)
             {
                 var timestamp = TestsHelpers.TimestampWithSeconds(seconds);
 
-                var window = Window.CreateForTimestamp(timestamp, windowSize, windowLag);
+                var window = Window.Create(StreamCoordinates.Empty, timestamp, windowSize, windowLag);
 
                 timestamp.InInterval(window.Start, window.End).Should().BeTrue();
                 window.Lag.Should().Be(windowLag);
@@ -35,7 +36,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AddEvent_should_check_in_interval()
         {
             // [40, 50)
-            var window = Window.CreateForTimestamp(TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
 
             window.AddEvent(
                     new MetricEvent(
@@ -77,7 +78,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void ShouldBeClosedBefore_should_return_if_lag_elapsed()
         {
             // [40, 50)
-            var window = Window.CreateForTimestamp(TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
 
             window.ShouldBeClosedBefore(TestsHelpers.TimestampWithSeconds(52)).Should().BeFalse();
             window.ShouldBeClosedBefore(TestsHelpers.TimestampWithSeconds(53)).Should().BeTrue();
@@ -88,7 +89,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AggregateEvents_should_pass_unit_and_quantiles_from_first_event()
         {
             // [40, 50)
-            var window = Window.CreateForTimestamp(TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
 
             window.AddEvent(
                     new MetricEvent(
@@ -123,7 +124,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AggregateEvents_should_pass_null_unit_and_quantiles()
         {
             // [40, 50)
-            var window = Window.CreateForTimestamp(TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), windowSize, windowLag);
 
             window.AddEvent(
                     new MetricEvent(

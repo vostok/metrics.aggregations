@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
@@ -11,17 +12,29 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class Window
     {
+        public readonly StreamCoordinates FirstEventCoordinates;
         public readonly DateTimeOffset Start;
         public readonly DateTimeOffset End;
         public readonly TimeSpan Lag;
         private readonly List<MetricEvent> events = new List<MetricEvent>();
 
-        private Window(DateTimeOffset start, DateTimeOffset end, TimeSpan lag)
+        private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan lag)
         {
+            FirstEventCoordinates = firstEventCoordinates;
             Start = start;
             End = end;
             Lag = lag;
         }
+
+        [NotNull]
+        public static Window Create(StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan windowSize, TimeSpan lag)
+        {
+            var start = timestamp.AddTicks(-timestamp.Ticks % windowSize.Ticks);
+            var result = new Window(firstEventCoordinates, start, start + windowSize, lag);
+            return result;
+        }
+
+        public int EventsCount => events.Count;
 
         public bool AddEvent([NotNull] MetricEvent @event)
         {
@@ -31,14 +44,6 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             events.Add(@event);
 
             return true;
-        }
-
-        [NotNull]
-        public static Window CreateForTimestamp(DateTimeOffset timestamp, TimeSpan windowSize, TimeSpan lag)
-        {
-            var start = timestamp.AddTicks(-timestamp.Ticks % windowSize.Ticks);
-            var result = new Window(start, start + windowSize, lag);
-            return result;
         }
 
         public bool ShouldBeClosedBefore(DateTimeOffset timestamp)

@@ -48,29 +48,31 @@ namespace Vostok.Metrics.Aggregations
             return consumer.RunAsync(cancellationToken);
         }
 
-        private async Task HandleAsync(StreamCoordinates coordinates, IList<HerculesEvent> events, CancellationToken cancellationToken)
+        private async Task HandleAsync(StreamCoordinates coordinates, IList<HerculesEvent> herculesEvents, CancellationToken cancellationToken)
         {
-            var metrics = events.Select(HerculesMetricEventFactory.CreateFrom).ToList();
-            var droppedMetrics = 0;
+            var events = herculesEvents.Select(HerculesMetricEventFactory.CreateFrom).ToList();
+            var droppedEvents = 0;
 
-            foreach (var metric in metrics)
+            foreach (var @event in events)
             {
-                if (!aggregators.ContainsKey(metric.Tags))
-                    aggregators[metric.Tags] = new OneMetricAggregator(metric.Tags, settings, log);
-                if (!aggregators[metric.Tags].AddEvent(metric))
-                    droppedMetrics++;
+                if (!aggregators.ContainsKey(@event.Tags))
+                    aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
+                if (!aggregators[@event.Tags].AddEvent(@event, coordinates))
+                    droppedEvents++;
             }
 
-            var aggregatedMetrics = new List<HerculesEvent>();
+            var result = new AggregateResult();
 
             foreach (var aggregator in aggregators)
             {
-                aggregatedMetrics.AddRange(aggregator.Value.GetAggregatedMetrics().Select(HerculesEventMetricBuilder.Build));
+                result.AddAggregateResult(aggregator.Value.Aggregate());
             }
 
             // TODO(kungurtsev): do something with old aggregators.
 
-            var insertQuery = new InsertEventsQuery(settings.TargetStreamName, aggregatedMetrics);
+            var insertQuery = new InsertEventsQuery(
+                settings.TargetStreamName, 
+                result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList());
 
             var insertResult = await settings.GateClient
                 .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
@@ -78,16 +80,26 @@ namespace Vostok.Metrics.Aggregations
 
             insertResult.EnsureSuccess();
 
-            LogProgress(metrics, aggregatedMetrics, droppedMetrics);
+            LogProgress(events, result, droppedEvents);
+
+#pragma warning disable 4014
+            Task.Run(() => settings.CoordinatesStorage.AdvanceAsync(coordinates), cancellationToken);
+#pragma warning restore 4014
         }
 
-        private void LogProgress(List<MetricEvent> @in, List<HerculesEvent> @out, int dropped)
+        private void LogProgress(List<MetricEvent> @in, AggregateResult result, int dropped)
         {
             log.Info(
-                "Metrics in: {MetricsIn}. Metrics out: {MetricsOut}. Metrics dropped: {MetricsDropped}",
+                "Global aggregator progress: events in: {EventsIn}, events out: {EventsOut}, events dropped: {EventsDropped}.",
                 @in.Count,
-                @out.Count,
+                result.AggregatedEvents.Count,
                 dropped);
+
+            log.Info(
+                "Global aggregator status: aggregators: {AggregatorsCount}, windows: {WindowsCount}, events: {EventsCount}.",
+                aggregators.Count,
+                result.ActiveWindowsCount,
+                result.ActiveEventsCount);
         }
     }
 }
