@@ -28,6 +28,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         private readonly int aggregatorsCount = 2;
         private readonly int sendersCount = 4;
         private readonly int sendTimers = 100;
+        private InMemoryCoordinatesStorage aggregatorsCoordinatesStorage;
         private HerculesMetricSenderSettings senderSettings;
         private CancellationTokenSource cancellationTokenSource;
         
@@ -35,6 +36,8 @@ namespace Vostok.Metrics.Aggregations.Tests
         public void SetUp()
         {
             cancellationTokenSource = new CancellationTokenSource();
+
+            aggregatorsCoordinatesStorage = new InMemoryCoordinatesStorage();
 
             senderSettings = new HerculesMetricSenderSettings(Hercules.Instance.Sink);
 
@@ -117,6 +120,8 @@ namespace Vostok.Metrics.Aggregations.Tests
 
             var goodBatches = new HashSet<string>();
             var passedIterations = 0;
+            var eventsObserved = 0;
+            var previousCoordinatesSum = 0L;
 
             Action assertion = () =>
             {
@@ -129,17 +134,22 @@ namespace Vostok.Metrics.Aggregations.Tests
 
                 foreach (var metric in countMetrics)
                 {
+                    eventsObserved += (int)metric.Value;
                     var name = metric.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value;
                     log.Info($"Recieved aggregated metric {name} with count {metric.Value} timestamp {metric.Timestamp}.");
                     if (metric.Value >= 7*sendTimers)
                         goodBatches.Add(name);
                 }
 
-                if (goodBatches.Count == sendersCount)
+                var sumCoordinates = aggregatorsCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset);
+                log.Info($"Sum coordinates: {sumCoordinates}. EventsObserved: {eventsObserved}.");
+
+                if (goodBatches.Count == sendersCount && sumCoordinates >= previousCoordinatesSum)
                     passedIterations++;
                 else
                     passedIterations = 0;
 
+                previousCoordinatesSum = sumCoordinates;
                 passedIterations.Should().Be(3);
             };
 
@@ -185,7 +195,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                     aggregateFunctionFactory,
                     Hercules.Instance.Stream,
                     Hercules.Instance.Gate,
-                    new InMemoryCoordinatesStorage(),
+                    aggregatorsCoordinatesStorage,
                     () => new StreamShardingSettings(index, aggregatorsCount)
                 )
                 {
