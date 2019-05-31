@@ -52,7 +52,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             {
                 var window = windows[i];
 
-                if (window.ShouldBeClosedBefore(maximumObservedTimestamp))
+                if (window.ShouldBeClosedBefore(maximumObservedTimestamp) || window.TooLongExists())
                 {
                     windows.RemoveAt(i--);
 
