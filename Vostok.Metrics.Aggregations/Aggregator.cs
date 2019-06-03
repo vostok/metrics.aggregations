@@ -38,6 +38,7 @@ namespace Vostok.Metrics.Aggregations
             )
             {
                 AutoSaveCoordinates = false,
+                HandleWithoutEvents = true,
                 EventsBatchSize = settings.EventsBatchSize,
                 DelayOnError = settings.DelayOnError,
                 DelayOnNoEvents = settings.DelayOnNoEvents,
