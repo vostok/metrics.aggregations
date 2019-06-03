@@ -50,6 +50,8 @@ namespace Vostok.Metrics.Aggregations
         public TimeSpan MaximumEventBeforeNow { get; set; } = 1.Days();
 
         public TimeSpan MaximumEventAfterNow { get; set; } = 1.Minutes();
+
+        public TimeSpan MetricTtl { get; set; } = 1.Hours();
         
         public AggregatorSettings(
             [NotNull] string sourceStreamName,
