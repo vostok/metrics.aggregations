@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using JetBrains.Annotations;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Logging.Abstractions;
@@ -16,6 +15,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         private readonly ILog log;
         private readonly Windows windows;
         private readonly IAggregateFunction aggregateFunction;
+        public DateTimeOffset LastEventAdded;
 
         public OneMetricAggregator(MetricTags tags, AggregatorSettings settings, ILog log)
         {
@@ -24,6 +24,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             this.log = log;
             windows = new Windows();
             aggregateFunction = settings.AggregateFunctionFactory(tags);
+            LastEventAdded = DateTimeOffset.Now;
         }
 
         public bool AddEvent([NotNull] MetricEvent @event, [NotNull] StreamCoordinates coordinates)
@@ -33,7 +34,13 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                 if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
                     return false;
 
-                return windows.AddEvent(@event, coordinates, settings.DefaultPeriod, settings.DefaultLag);
+                if (windows.AddEvent(@event, coordinates, settings.DefaultPeriod, settings.DefaultLag))
+                {
+                    LastEventAdded = DateTimeOffset.Now;
+                    return true;
+                }
+
+                return false;
             }
             catch (Exception e)
             {

@@ -32,7 +32,7 @@ namespace Vostok.Metrics.Aggregations
             var streamConsumerSettings = new StreamConsumerSettings(
                 settings.SourceStreamName,
                 settings.StreamClient,
-                new AdHocEventsHandler(HandleAsync), 
+                new AdHocEventsHandler(HandleAsync),
                 settings.CoordinatesStorage,
                 settings.ShardingSettingsProvider
             )
@@ -67,19 +67,28 @@ namespace Vostok.Metrics.Aggregations
             }
 
             var result = new AggregateResult();
+            var staleAggregators = new List<MetricTags>();
 
             foreach (var aggregator in aggregators)
             {
-                result.AddAggregateResult(aggregator.Value.Aggregate());
+                var aggregateResult = aggregator.Value.Aggregate();
+                result.AddAggregateResult(aggregateResult);
+
+                if (aggregateResult.ActiveEventsCount == 0
+                    && DateTimeOffset.Now - aggregator.Value.LastEventAdded > settings.MetricTtl)
+                    staleAggregators.Add(aggregator.Key);
+            }
+
+            foreach (var aggregator in staleAggregators)
+            {
+                aggregators.Remove(aggregator);
             }
 
             if (result.FirstActiveEventCoordinates == null)
                 result.AddActiveCoordinates(query.Coordinates);
 
-            // TODO(kungurtsev): do something with old aggregators.
-
             var insertQuery = new InsertEventsQuery(
-                settings.TargetStreamName, 
+                settings.TargetStreamName,
                 result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList());
 
             var insertResult = await settings.GateClient
@@ -92,7 +101,7 @@ namespace Vostok.Metrics.Aggregations
 
             await SaveProgressAsync(result.FirstActiveEventCoordinates).ConfigureAwait(false);
         }
-        
+
         private async Task SaveProgressAsync(StreamCoordinates coordinates)
         {
             try
