@@ -184,11 +184,11 @@ namespace Vostok.Metrics.Aggregations.Tests
                     senderSettings.FinalStream,
                     Hercules.Instance.Stream,
                     new AdHocEventsHandler(
-                        (coordinates, events, token) =>
+                        (coordinates, streamResult, token) =>
                         {
                             lock (receivedEvents)
                             {
-                                receivedEvents.AddRange(events.Select(HerculesMetricEventFactory.CreateFrom));
+                                receivedEvents.AddRange(streamResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom));
                             }
 
                             return Task.CompletedTask;
