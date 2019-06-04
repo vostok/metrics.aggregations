@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using Vostok.Hercules.Client.Abstractions.Events;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Hercules.Client.Abstractions.Queries;
+using Vostok.Hercules.Client.Abstractions.Results;
 using Vostok.Hercules.Consumers;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.Helpers;
@@ -54,16 +55,16 @@ namespace Vostok.Metrics.Aggregations
             return consumer.RunAsync(cancellationToken);
         }
 
-        private async Task HandleAsync(ReadStreamQuery query, IList<HerculesEvent> herculesEvents, CancellationToken cancellationToken)
+        private async Task HandleAsync(ReadStreamQuery query, ReadStreamResult streamResult, CancellationToken cancellationToken)
         {
-            var events = herculesEvents.Select(HerculesMetricEventFactory.CreateFrom).ToList();
+            var events = streamResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom).ToList();
             var droppedEvents = 0;
 
             foreach (var @event in events)
             {
                 if (!aggregators.ContainsKey(@event.Tags))
                     aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
-                if (!aggregators[@event.Tags].AddEvent(@event, query.Coordinates))
+                if (!aggregators[@event.Tags].AddEvent(@event, streamResult.Payload.Next))
                     droppedEvents++;
             }
 
