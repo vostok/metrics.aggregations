@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
 using Vostok.Metrics.Primitives.Timer;
+using Vostok.Metrics.Senders;
 
 namespace Vostok.Metrics.Aggregations.Tests
 {
@@ -23,15 +25,26 @@ namespace Vostok.Metrics.Aggregations.Tests
     internal class Aggregator_FunctionalTests
     {
         private readonly ILog log = new SynchronousConsoleLog();
+
         private readonly TimeSpan period = 1.Seconds();
         private readonly TimeSpan lag = 1.Seconds();
+
         private readonly int aggregatorsCount = 2;
         private readonly int sendersCount = 4;
-        private readonly int sendTimers = 100;
+        private readonly int sendTimersPerSecond = 10;
+
+        private readonly int expectedGoodIterations = 3;
+        private readonly int readIterations = 5;
+
         private InMemoryCoordinatesStorage aggregatorsCoordinatesStorage;
         private HerculesMetricSenderSettings senderSettings;
         private CancellationTokenSource cancellationTokenSource;
-        
+
+        private IMetricContext metricContext;
+
+        private TestsHelpers.TestMetricSender testMetricSender;
+        private List<Aggregator> aggregators;
+
         [SetUp]
         public void SetUp()
         {
@@ -61,6 +74,19 @@ namespace Vostok.Metrics.Aggregations.Tests
                 .ToArray();
 
             Task.WaitAll(streamCreateTasks);
+
+            var herculesSender = new HerculesMetricSender(new HerculesMetricSenderSettings(Hercules.Instance.Sink));
+            testMetricSender = new TestsHelpers.TestMetricSender();
+            
+            metricContext = new MetricContext(
+                new MetricContextConfig(new CompositeMetricEventSender(new IMetricEventSender[] {
+                    herculesSender,
+                    testMetricSender }))
+                {
+                    ErrorCallback = error => log.Error(error)
+                });
+
+            aggregators = new List<Aggregator>();
         }
 
         [TearDown]
@@ -78,14 +104,6 @@ namespace Vostok.Metrics.Aggregations.Tests
         [Test]
         public void Should_aggregate_timers()
         {
-            var herculesSender = new HerculesMetricSender(new HerculesMetricSenderSettings(Hercules.Instance.Sink));
-
-            var context = new MetricContext(
-                new MetricContextConfig(herculesSender)
-                {
-                    ErrorCallback = error => log.Error(error)
-                }) as IMetricContext;
-
             RunAggregators(
                 // ReSharper disable AssignNullToNotNullAttribute
                 senderSettings.TimersStream,
@@ -93,38 +111,21 @@ namespace Vostok.Metrics.Aggregations.Tests
                 // ReSharper restore AssignNullToNotNullAttribute
                 tags => new TimersAggregateFunction(tags));
 
-            RunSenders(context);
+            RunSenders();
             
             var aggregatedEvents = new List<MetricEvent>();
+            RunConsumer(aggregatedEvents);
 
-#pragma warning disable 4014
-            new StreamConsumer(
-                new StreamConsumerSettings(
-                    senderSettings.FinalStream,
-                    Hercules.Instance.Stream,
-                    new AdHocEventsHandler(
-                        (coordinates, events, token) =>
-                        {
-                            lock (aggregatedEvents)
-                            {
-                                aggregatedEvents.AddRange(events.Select(HerculesMetricEventFactory.CreateFrom));
-                            }
+            var eventsRecieved = 0L;
+            var receivedEvents = new Dictionary<(string, DateTime), int>();
+            var stopwatch = Stopwatch.StartNew();
+            var expectedEvents = sendersCount * sendTimersPerSecond * readIterations;
 
-                            return Task.CompletedTask;
-                        }),
-                    new InMemoryCoordinatesStorage(),
-                    () => new StreamShardingSettings(0, 1)
-                ),
-                log.ForContext("Checker")).RunAsync(cancellationTokenSource.Token);
-#pragma warning restore 4014
-
-            var goodBatches = new HashSet<string>();
-            var passedIterations = 0;
-            var eventsObserved = 0;
-            var previousCoordinatesSum = 0L;
-
-            Action assertion = () =>
+            while (eventsRecieved < expectedEvents)
             {
+                if (stopwatch.Elapsed > 20.Seconds())
+                    throw new AssertionException($"Failed to recieve {expectedEvents} events, got only {eventsRecieved} in {stopwatch.Elapsed}.");
+
                 List<MetricEvent> countMetrics;
                 lock (aggregatedEvents)
                 {
@@ -132,35 +133,77 @@ namespace Vostok.Metrics.Aggregations.Tests
                     aggregatedEvents.Clear();
                 }
 
-                foreach (var metric in countMetrics)
+                if (!countMetrics.Any())
                 {
-                    eventsObserved += (int)metric.Value;
-                    var name = metric.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value;
-                    log.Info($"Recieved aggregated metric {name} with count {metric.Value} timestamp {metric.Timestamp}.");
-                    if (metric.Value >= 7*sendTimers)
-                        goodBatches.Add(name);
+                    log.Info("No recieved aggregated metrics.");
+                    Thread.Sleep(1.Seconds());
+                    continue;
                 }
 
-                var sumCoordinates = aggregatorsCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset);
-                log.Info($"Sum coordinates: {sumCoordinates}. EventsObserved: {eventsObserved}.");
+                foreach (var metric in countMetrics)
+                {
+                    eventsRecieved += (int)metric.Value;
+                    var name = metric.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value;
+                    log.Info($"Recieved aggregated metric {name} with count {metric.Value} timestamp {metric.Timestamp}.");
 
-                if (goodBatches.Count == sendersCount && sumCoordinates >= previousCoordinatesSum)
-                    passedIterations++;
-                else
-                    passedIterations = 0;
+                    var key = (name, metric.Timestamp.UtcDateTime);
+                    if (!receivedEvents.ContainsKey(key))
+                        receivedEvents[key] = 0;
+                    receivedEvents[key] += (int)metric.Value;
+                }
+                
+                Thread.Sleep(1.Seconds());
+            }
 
-                previousCoordinatesSum = sumCoordinates;
-                passedIterations.Should().Be(3);
-            };
+            var sentEvents = testMetricSender.Events();
+            var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
+            sentEvents = sentEvents.Where(e => e.Timestamp.UtcDateTime < maxTimestamp).ToList();
 
-            assertion.ShouldPassIn(10.Seconds(), 1.Seconds());
+            var groupedSentEvents = sentEvents
+                .GroupBy(e => (e.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value, RoundUp(e.Timestamp.UtcDateTime)))
+                .ToList();
+
+            groupedSentEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            groupedSentEvents.All(g => receivedEvents[g.Key] == g.Count()).Should().BeTrue();
+
+            Action checkCoordinatesSaving = () => 
+                aggregatorsCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(eventsRecieved);
+            checkCoordinatesSaving.ShouldPassIn(2.Seconds());
         }
 
-        private void RunSenders(IMetricContext context)
+        private void RunConsumer(List<MetricEvent> receivedEvents)
+        {
+#pragma warning disable 4014
+            var consumer = new StreamConsumer(
+                new StreamConsumerSettings(
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    senderSettings.FinalStream,
+                    Hercules.Instance.Stream,
+                    new AdHocEventsHandler(
+                        (coordinates, events, token) =>
+                        {
+                            lock (receivedEvents)
+                            {
+                                receivedEvents.AddRange(events.Select(HerculesMetricEventFactory.CreateFrom));
+                            }
+
+                            return Task.CompletedTask;
+                        }),
+                    new InMemoryCoordinatesStorage(),
+                    () => new StreamShardingSettings(0, 1)
+                ),
+                log.ForContext("Consumer"));
+
+            consumer.RunAsync(cancellationTokenSource.Token);
+#pragma warning restore 4014
+        }
+
+        private void RunSenders()
         {
             for (var sender = 0; sender < sendersCount; sender++)
             {
-                var timer = context.CreateTimer($"timer-{sender}");
+                var timer = metricContext.CreateTimer($"timer-{sender}");
 
                 var sender1 = sender;
                 Task.Run(
@@ -168,12 +211,12 @@ namespace Vostok.Metrics.Aggregations.Tests
                     {
                         while (!cancellationTokenSource.IsCancellationRequested)
                         {
-                            Parallel.For(0, sendTimers, t =>
+                            Parallel.For(0, sendTimersPerSecond / 10, t =>
                             {
                                 timer.Report(t);
                             });
 
-                            log.Info($"Sender {sender1} reported {sendTimers} timers.");
+                            log.Info($"Sender {sender1} reported {sendTimersPerSecond} timers.");
                             
                             await Task.Delay(0.1.Seconds());
                         }
@@ -206,7 +249,15 @@ namespace Vostok.Metrics.Aggregations.Tests
                 var aggregator = new Aggregator(aggregatorSettings, log.ForContext($"Aggregator-{i}"));
 
                 aggregator.RunAsync(cancellationTokenSource.Token);
+
+                aggregators.Add(aggregator);
             }
+        }
+
+        private static DateTime RoundUp(DateTime date)
+        {
+            var ticks = 1.Seconds().Ticks;
+            return new DateTime((date.Ticks + ticks) / ticks * ticks, date.Kind);
         }
     }
 }

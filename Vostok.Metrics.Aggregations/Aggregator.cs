@@ -134,7 +134,7 @@ namespace Vostok.Metrics.Aggregations
             if (end != null)
             {
                 var remainingEvents = StreamCoordinatesMerger.Distance(query.Coordinates, end) - @in.Count;
-                log.Info("Global aggregator progress: remaining events: {EventsRemaining}.", remainingEvents);
+                log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remainingEvents);
             }
         }
 

@@ -60,5 +60,28 @@ namespace Vostok.Metrics.Aggregations.Tests
                 Quantiles = newQuantiles;
             }
         }
+
+        public class TestMetricSender : IMetricEventSender
+        {
+            private List<MetricEvent> sent = new List<MetricEvent>();
+
+            public void Send(MetricEvent @event)
+            {
+                lock (sent)
+                {
+                    sent.Add(@event);
+                }
+            }
+
+            public List<MetricEvent> Events()
+            {
+                lock (sent)
+                {
+                    var result = sent.ToList();
+                    sent.Clear();
+                    return result;
+                }
+            }
+        }
     }
 }
