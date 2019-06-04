@@ -88,6 +88,16 @@ namespace Vostok.Metrics.Aggregations
             if (result.FirstActiveEventCoordinates == null)
                 result.AddActiveCoordinates(query.Coordinates);
 
+            if (result.AggregatedEvents.Any())
+                await SendAggregatedEvents(cancellationToken, result).ConfigureAwait(false);
+
+            await LogProgress(query, events, result, droppedEvents).ConfigureAwait(false);
+
+            await SaveProgress(result.FirstActiveEventCoordinates).ConfigureAwait(false);
+        }
+
+        private async Task SendAggregatedEvents(CancellationToken cancellationToken, AggregateResult result)
+        {
             var insertQuery = new InsertEventsQuery(
                 settings.TargetStreamName,
                 result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList());
@@ -97,13 +107,9 @@ namespace Vostok.Metrics.Aggregations
                 .ConfigureAwait(false);
 
             insertResult.EnsureSuccess();
-
-            await LogProgress(query, events, result, droppedEvents).ConfigureAwait(false);
-
-            await SaveProgressAsync(result.FirstActiveEventCoordinates).ConfigureAwait(false);
         }
 
-        private async Task SaveProgressAsync(StreamCoordinates coordinates)
+        private async Task SaveProgress(StreamCoordinates coordinates)
         {
             try
             {
