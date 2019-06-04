@@ -159,13 +159,13 @@ namespace Vostok.Metrics.Aggregations.Tests
             var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
             sentEvents = sentEvents.Where(e => e.Timestamp.UtcDateTime < maxTimestamp).ToList();
 
-            var groupedSentEvents = sentEvents
+            var expectedRecievedEvents = sentEvents
                 .GroupBy(e => (e.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value, RoundUp(e.Timestamp.UtcDateTime)))
+                .ToDictionary(g => g.Key, g => g.Count())
                 .ToList();
 
-            groupedSentEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            groupedSentEvents.All(g => receivedEvents[g.Key] == g.Count()).Should().BeTrue();
+            expectedRecievedEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
+            receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
 
             Action checkCoordinatesSaving = () => 
                 aggregatorsCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(eventsRecieved);
