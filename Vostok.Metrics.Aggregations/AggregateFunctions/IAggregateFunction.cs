@@ -9,7 +9,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     public interface IAggregateFunction
     {
         [NotNull]
-        IEnumerable<MetricEvent> Aggregate([NotNull] [ItemNotNull] IEnumerable<MetricEvent> events, DateTimeOffset timestamp);
+        IEnumerable<MetricEvent> Aggregate([NotNull] IEnumerable<double> values, DateTimeOffset timestamp);
 
         void SetUnit([CanBeNull] string newUnit);
 

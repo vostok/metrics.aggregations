@@ -19,8 +19,14 @@ namespace Vostok.Metrics.Aggregations.Tests
             public string Unit;
             public double[] Quantiles;
 
-            public IEnumerable<MetricEvent> Aggregate(IEnumerable<MetricEvent> events, DateTimeOffset timestamp) =>
-                events.ToList();
+            public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp) =>
+                values.Select(v => new MetricEvent(
+                    v, 
+                    new MetricTags(1).Append("key", "value"),
+                    timestamp,
+                    Unit,
+                    null,
+                    null));
 
             public void SetUnit(string newUnit)
             {
@@ -38,11 +44,11 @@ namespace Vostok.Metrics.Aggregations.Tests
             public string Unit;
             public double[] Quantiles;
 
-            public IEnumerable<MetricEvent> Aggregate(IEnumerable<MetricEvent> events, DateTimeOffset timestamp) =>
+            public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp) =>
                 new List<MetricEvent>
                 {
                     new MetricEvent(
-                        events.Sum(e => e.Value),
+                        values.Sum(),
                         new MetricTags(1).Append("key", "value"),
                         timestamp,
                         Unit,

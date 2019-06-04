@@ -17,8 +17,8 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
             quantileMetricsBuilder = new QuantileMetricsBuilder(null, tags, null);
         }
 
-        public IEnumerable<MetricEvent> Aggregate(IEnumerable<MetricEvent> events, DateTimeOffset timestamp)
-            => quantileMetricsBuilder.Build(events.Select(e => e.Value).ToArray(), timestamp);
+        public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp)
+            => quantileMetricsBuilder.Build(values.ToArray(), timestamp);
 
         public void SetUnit(string newUnit)
             => quantileMetricsBuilder.SetUnit(newUnit);
