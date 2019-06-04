@@ -101,7 +101,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         }
 
         [Test]
-        public void AggregateEvents_should_pass_unit_and_quantiles_from_first_event()
+        public void AggregateEvents_should_pass_unit_and_quantiles_from_last_event()
         {
             // [40, 50)
             var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
@@ -125,14 +125,15 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         TestsHelpers.TimestampWithSeconds(41),
                         "unit2",
                         null,
-                        null))
+                        new Dictionary<string, string>().SetQuantiles(new[] { 0.34 }))
+                )
                 .Should()
                 .BeTrue();
 
             var aggregate = new TestsHelpers.ReturnEvents();
             window.AggregateEvents(aggregate).Count().Should().Be(2);
-            aggregate.Unit.Should().Be("unit1");
-            aggregate.Quantiles.Should().BeEquivalentTo(new[] {0.33});
+            aggregate.Unit.Should().Be("unit2");
+            aggregate.Quantiles.Should().BeEquivalentTo(new[] {0.34});
         }
 
         [Test]
