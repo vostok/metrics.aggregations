@@ -9,7 +9,7 @@ namespace Vostok.Metrics.Aggregations.Tests
 {
     internal static class TestsHelpers
     {
-        public static DateTimeOffset TimestampWithSeconds(int seconds)
+        public static DateTimeOffset TimestampWithSeconds(double seconds)
         {
             return new DateTimeOffset(2019, 01, 01, 00, 00, 00, TimeSpan.Zero) + seconds.Seconds();
         }

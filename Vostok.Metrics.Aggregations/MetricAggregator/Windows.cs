@@ -41,11 +41,8 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        public AggregateResult Aggregate([NotNull] IAggregateFunction aggregateFunction, DateTimeOffset now)
+        public AggregateResult Aggregate([NotNull] IAggregateFunction aggregateFunction)
         {
-            if (maximumObservedTimestamp < now)
-                maximumObservedTimestamp = now;
-
             var result = new AggregateResult();
 
             for (var i = 0; i < windows.Count; i++)

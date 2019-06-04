@@ -17,8 +17,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         public readonly DateTimeOffset End;
         public readonly TimeSpan Period;
         public readonly TimeSpan Lag;
-        private readonly DateTimeOffset createdAt;
+
         private readonly List<MetricEvent> events = new List<MetricEvent>();
+        private DateTimeOffset lastEventAdded;
 
         private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
@@ -27,7 +28,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             End = end;
             Period = period;
             Lag = lag;
-            createdAt = DateTimeOffset.Now;
+            lastEventAdded = DateTimeOffset.Now;
         }
 
         [NotNull]
@@ -45,6 +46,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             if (!@event.Timestamp.InInterval(Start, End))
                 return false;
 
+            lastEventAdded = DateTimeOffset.Now;
             events.Add(@event);
 
             return true;
@@ -57,7 +59,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         public bool TooLongExists()
         {
-            return DateTimeOffset.Now - createdAt > Period + Lag;
+            return DateTimeOffset.Now - lastEventAdded > Period + Lag;
         }
 
         [NotNull]
