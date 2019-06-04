@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
@@ -12,20 +13,50 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
     [TestFixture]
     internal class Windows_Tests
     {
-        private readonly TimeSpan period = 10.Seconds();
-        private readonly TimeSpan lag = 3.Seconds();
+        private readonly TimeSpan period = 1.Seconds();
+        private readonly TimeSpan lag = 0.3.Seconds();
 
         [Test]
-        public void AddEvent_should_build_windows()
+        public void Aggregate_should_close_windows_after_lag_elapsed_using_max_observed_timestamp()
         {
             var windows = FilledWindows();
 
             var aggregate = new TestsHelpers.SumValues();
 
-            var result = windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.ToList();
-            result.Count.Should().Be(2);
-            result[0].Value.Should().Be(45);
-            result[1].Value.Should().Be(46);
+            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
+        }
+
+        [Test]
+        public void Aggregate_should_close_windows_after_lag_plus_period_elapsed_since_last_event_add()
+        {
+            var windows = FilledWindows();
+
+            var aggregate = new TestsHelpers.SumValues();
+
+            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate(aggregate).AggregatedEvents.Should().BeEmpty();
+
+            Thread.Sleep(period + lag);
+
+            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(46);
+        }
+
+        [Test]
+        public void Aggregate_should_calculate_statistic()
+        {
+            var windows = FilledWindows();
+
+            var aggregate = new TestsHelpers.SumValues();
+
+            var result = windows.Aggregate(aggregate);
+            result.AggregatedEvents.Single().Value.Should().Be(45);
+            result.ActiveEventsCount.Should().Be(4);
+            result.ActiveWindowsCount.Should().Be(1);
+            result.FirstActiveEventCoordinates.Should().BeEquivalentTo(new StreamCoordinates(new[] {new StreamPosition
+            {
+                Offset = 10,
+                Partition = 42
+            }}));
         }
 
         [Test]
@@ -35,13 +66,13 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
 
             var aggregate = new TestsHelpers.SumValues();
             
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
 
             windows.AddEvent(
                     new MetricEvent(
                         100,
                         new MetricTags(1).Append("key", "value"),
-                        TestsHelpers.TimestampWithSeconds(9),
+                        TestsHelpers.TimestampWithSeconds(0.9),
                         null,
                         null,
                         null),
@@ -55,7 +86,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                     new MetricEvent(
                         100,
                         new MetricTags(1).Append("key", "value"),
-                        TestsHelpers.TimestampWithSeconds(10),
+                        TestsHelpers.TimestampWithSeconds(1),
                         null,
                         null,
                         null),
@@ -64,100 +95,6 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                     lag)
                 .Should()
                 .BeTrue();
-
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Single().Value.Should().Be(146);
-        }
-
-        [Test]
-        public void AddEvent_should_use_period_and_lag_from_aggregation_parameters()
-        {
-            var windows = new Windows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.AddEvent(
-                    new MetricEvent(
-                        1,
-                        new MetricTags(1).Append("key", "value"),
-                        TestsHelpers.TimestampWithSeconds(0),
-                        null,
-                        null,
-                        null),
-                    StreamCoordinates.Empty,
-                    1.Seconds(),
-                    2.Seconds())
-                .Should()
-                .BeTrue();
-
-            windows.AddEvent(
-                    new MetricEvent(
-                        2,
-                        new MetricTags(1).Append("key", "value"),
-                        TestsHelpers.TimestampWithSeconds(1),
-                        null,
-                        null,
-                        null),
-                    StreamCoordinates.Empty,
-                    5.Seconds(),
-                    4.Seconds())
-                .Should()
-                .BeTrue();
-
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(2)).AggregatedEvents.Should().BeEmpty();
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(3)).AggregatedEvents.Single().Value.Should().Be(1);
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(8)).AggregatedEvents.Should().BeEmpty();
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(9)).AggregatedEvents.Single().Value.Should().Be(2);
-        }
-
-        [Test]
-        public void Aggregate_should_close_windows_after_lag_elapsed_using_max_observed_timestamp()
-        {
-            var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
-        }
-
-        [Test]
-        public void Aggregate_should_close_windows_after_lag_elapsed_using_now_timestamp()
-        {
-            var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100)).AggregatedEvents.Single().Value.Should().Be(45);
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(22)).AggregatedEvents.Should().BeEmpty();
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(23)).AggregatedEvents.Single().Value.Should().Be(46);
-        }
-
-        [Test]
-        public void Aggregate_should_calculate_statistic()
-        {
-            var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            var result = windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(-100));
-            result.AggregatedEvents.Single().Value.Should().Be(45);
-            result.ActiveEventsCount.Should().Be(4);
-            result.ActiveWindowsCount.Should().Be(1);
-            result.FirstActiveEventCoordinates.Should().BeEquivalentTo(new StreamCoordinates(new[] {new StreamPosition
-            {
-                Offset = 10,
-                Partition = 42
-            }}));
-        }
-
-        [Test]
-        public void Aggregate_should_close_windows_only_once()
-        {
-            var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Count.Should().Be(2);
-            windows.Aggregate(aggregate, TestsHelpers.TimestampWithSeconds(60)).AggregatedEvents.Count.Should().Be(0);
         }
 
         private Windows FilledWindows()
@@ -170,7 +107,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         new MetricEvent(
                             seconds,
                             new MetricTags(1).Append("key", "value"),
-                            TestsHelpers.TimestampWithSeconds(seconds),
+                            TestsHelpers.TimestampWithSeconds(seconds / 10.0),
                             null,
                             null,
                             null),

@@ -54,7 +54,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         {
             try
             {
-                return windows.Aggregate(aggregateFunction, DateTimeOffset.Now);
+                return windows.Aggregate(aggregateFunction);
             }
             catch (Exception e)
             {
