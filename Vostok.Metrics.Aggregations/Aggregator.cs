@@ -89,14 +89,14 @@ namespace Vostok.Metrics.Aggregations
                 result.AddActiveCoordinates(query.Coordinates);
 
             if (result.AggregatedEvents.Any())
-                await SendAggregatedEvents(cancellationToken, result).ConfigureAwait(false);
+                await SendAggregatedEvents(result, cancellationToken).ConfigureAwait(false);
 
             await LogProgress(query, events, result, droppedEvents).ConfigureAwait(false);
 
             await SaveProgress(result.FirstActiveEventCoordinates).ConfigureAwait(false);
         }
 
-        private async Task SendAggregatedEvents(CancellationToken cancellationToken, AggregateResult result)
+        private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
         {
             var insertQuery = new InsertEventsQuery(
                 settings.TargetStreamName,
