@@ -156,8 +156,11 @@ namespace Vostok.Metrics.Aggregations.Tests
             }
 
             var sentEvents = testMetricSender.Events();
+
             var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
-            sentEvents = sentEvents.Where(e => e.Timestamp.UtcDateTime < maxTimestamp).ToList();
+            sentEvents = sentEvents.Where(e => RoundUp(e.Timestamp.UtcDateTime) < maxTimestamp).ToList();
+            foreach (var key in receivedEvents.Keys.Where(k => k.Item2 == maxTimestamp).ToList())
+                receivedEvents.Remove(key);
 
             var expectedRecievedEvents = sentEvents
                 .GroupBy(e => (e.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value, RoundUp(e.Timestamp.UtcDateTime)))
