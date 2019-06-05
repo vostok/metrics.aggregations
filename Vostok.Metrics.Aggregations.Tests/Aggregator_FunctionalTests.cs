@@ -19,6 +19,8 @@ using Vostok.Metrics.Models;
 using Vostok.Metrics.Primitives.Timer;
 using Vostok.Metrics.Senders;
 
+#pragma warning disable 4014
+
 namespace Vostok.Metrics.Aggregations.Tests
 {
     [TestFixture]
@@ -36,13 +38,15 @@ namespace Vostok.Metrics.Aggregations.Tests
         private readonly int expectedGoodIterations = 3;
         private readonly int readIterations = 5;
 
-        private InMemoryCoordinatesStorage aggregatorsCoordinatesStorage;
+        private InMemoryCoordinatesStorage leftCoordinatesStorage;
+        private InMemoryCoordinatesStorage rightCoordinatesStorage;
         private HerculesMetricSenderSettings senderSettings;
         private CancellationTokenSource cancellationTokenSource;
 
         private IMetricContext metricContext;
 
         private TestsHelpers.TestMetricSender testMetricSender;
+        // ReSharper disable once CollectionNeverQueried.Local
         private List<Aggregator> aggregators;
 
         [SetUp]
@@ -50,7 +54,8 @@ namespace Vostok.Metrics.Aggregations.Tests
         {
             cancellationTokenSource = new CancellationTokenSource();
 
-            aggregatorsCoordinatesStorage = new InMemoryCoordinatesStorage();
+            leftCoordinatesStorage = new InMemoryCoordinatesStorage();
+            rightCoordinatesStorage = new InMemoryCoordinatesStorage();
 
             senderSettings = new HerculesMetricSenderSettings(Hercules.Instance.Sink);
 
@@ -171,13 +176,12 @@ namespace Vostok.Metrics.Aggregations.Tests
             receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
 
             Action checkCoordinatesSaving = () => 
-                aggregatorsCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(eventsRecieved);
+                leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(eventsRecieved);
             checkCoordinatesSaving.ShouldPassIn(2.Seconds());
         }
 
         private void RunConsumer(List<MetricEvent> receivedEvents)
         {
-#pragma warning disable 4014
             var consumer = new StreamConsumer(
                 new StreamConsumerSettings(
                     // ReSharper disable once AssignNullToNotNullAttribute
@@ -199,7 +203,6 @@ namespace Vostok.Metrics.Aggregations.Tests
                 log.ForContext("Consumer"));
 
             consumer.RunAsync(cancellationTokenSource.Token);
-#pragma warning restore 4014
         }
 
         private void RunSenders()
@@ -241,7 +244,8 @@ namespace Vostok.Metrics.Aggregations.Tests
                     aggregateFunctionFactory,
                     Hercules.Instance.Stream,
                     Hercules.Instance.Gate,
-                    aggregatorsCoordinatesStorage,
+                    leftCoordinatesStorage,
+                    rightCoordinatesStorage,
                     () => new StreamShardingSettings(index, aggregatorsCount)
                 )
                 {
