@@ -115,7 +115,7 @@ namespace Vostok.Metrics.Aggregations
             try
             {
                 await settings.CoordinatesStorage.AdvanceAsync(coordinates).ConfigureAwait(false);
-                log.Info("Saved coordinates to storage: {StreamCoordinates}.", coordinates);
+                log.Info("Saved coordinates: {StreamCoordinates}.", coordinates);
             }
             catch (Exception e)
             {
