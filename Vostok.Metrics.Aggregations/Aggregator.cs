@@ -4,13 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Vostok.Hercules.Client.Abstractions.Events;
+using Vostok.Commons.Helpers.Extensions;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Hercules.Client.Abstractions.Queries;
-using Vostok.Hercules.Client.Abstractions.Results;
 using Vostok.Hercules.Consumers;
+using Vostok.Hercules.Consumers.Helpers;
 using Vostok.Logging.Abstractions;
-using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
@@ -21,51 +20,124 @@ namespace Vostok.Metrics.Aggregations
     public class Aggregator
     {
         private readonly AggregatorSettings settings;
-        private readonly StreamConsumer consumer;
         private readonly ILog log;
         private readonly Dictionary<MetricTags, OneMetricAggregator> aggregators;
+        private readonly StreamReader streamReader;
+
+        private StreamShardingSettings shardingSettings;
+        private StreamCoordinates leftCoordinates;
+        private StreamCoordinates rightCoordinates;
+
+        private bool restart;
 
         public Aggregator(AggregatorSettings settings, ILog log)
         {
             this.settings = settings;
             this.log = log;
 
-            var streamConsumerSettings = new StreamConsumerSettings(
+            var streamReaderSettings = new StreamReaderSettings(
                 settings.SourceStreamName,
-                settings.StreamClient,
-                new AdHocEventsHandler(HandleAsync),
-                settings.CoordinatesStorage,
-                settings.ShardingSettingsProvider
-            )
+                settings.StreamClient)
             {
-                AutoSaveCoordinates = false,
-                HandleWithoutEvents = true,
                 EventsBatchSize = settings.EventsBatchSize,
-                DelayOnError = settings.DelayOnError,
-                DelayOnNoEvents = settings.DelayOnNoEvents,
                 EventsReadTimeout = settings.EventsReadTimeout
             };
-
-            consumer = new StreamConsumer(streamConsumerSettings, log);
+            
+            streamReader = new StreamReader(streamReaderSettings, log);
             aggregators = new Dictionary<MetricTags, OneMetricAggregator>();
         }
 
-        public Task RunAsync(CancellationToken cancellationToken)
+        public async Task RunAsync(CancellationToken cancellationToken)
         {
-            return consumer.RunAsync(cancellationToken);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    // (iloktionov): Catch-up with state for other shards on any change to our sharding settings:
+                    var newShardingSettings = settings.ShardingSettingsProvider();
+                    if (shardingSettings == null || !shardingSettings.Equals(newShardingSettings))
+                    {
+                        log.Info(
+                            "Observed new sharding settings: shard with index {ShardIndex} from {ShardCount}. Syncing coordinates.",
+                            newShardingSettings.ClientShardIndex,
+                            newShardingSettings.ClientShardCount);
+
+                        shardingSettings = newShardingSettings;
+
+                        restart = true;
+                    }
+
+                    if (restart)
+                    {
+                        await Restart(cancellationToken).ConfigureAwait(false);
+                        restart = false;
+                    }
+
+                    await MakeIteration(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception error)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
+
+                    log.Error(error);
+
+                    await Task.Delay(settings.DelayOnError, cancellationToken).SilentlyContinue().ConfigureAwait(false);
+                }
+            }
+
         }
 
-        private async Task HandleAsync(ReadStreamQuery query, ReadStreamResult streamResult, CancellationToken cancellationToken)
+        private async Task Restart(CancellationToken cancellationToken)
         {
-            var events = streamResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom).ToList();
-            var droppedEvents = 0;
+            leftCoordinates = await settings.LeftCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
+            rightCoordinates = await settings.RightCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
 
-            foreach (var @event in events)
+            aggregators.Clear();
+
+            log.Info("Updated coordinates from storage: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
+
+            var coordinates = leftCoordinates;
+
+            while (true)
+            {
+                var distance = StreamCoordinatesMerger.Distance(coordinates, rightCoordinates);
+                if (distance <= 0)
+                    break;
+
+                var (query, result) = await streamReader.ReadAsync(coordinates, shardingSettings, cancellationToken).ConfigureAwait(false);
+                foreach (var @event in result.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
+                {
+                    if (!aggregators.ContainsKey(@event.Tags))
+                        aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
+                    aggregators[@event.Tags].AddEvent(@event, query.Coordinates);
+                }
+
+                foreach (var aggregator in aggregators)
+                {
+                    aggregator.Value.Aggregate();
+                }
+
+                coordinates = result.Payload.Next;
+            }
+            
+            rightCoordinates = coordinates;
+
+            log.Info("Coordinates after restart: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
+        }
+
+        private async Task MakeIteration(CancellationToken cancellationToken)
+        {
+            var (query, readResult) = await streamReader.ReadAsync(rightCoordinates, shardingSettings, cancellationToken).ConfigureAwait(false);
+
+            var eventsDropped = 0;
+
+            foreach (var @event in readResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
             {
                 if (!aggregators.ContainsKey(@event.Tags))
                     aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
-                if (!aggregators[@event.Tags].AddEvent(@event, streamResult.Payload.Next))
-                    droppedEvents++;
+                if (!aggregators[@event.Tags].AddEvent(@event, query.Coordinates))
+                    eventsDropped++;
             }
 
             var result = new AggregateResult();
@@ -86,15 +158,15 @@ namespace Vostok.Metrics.Aggregations
                 aggregators.Remove(aggregator);
             }
 
-            if (result.FirstActiveEventCoordinates == null)
-                result.AddActiveCoordinates(query.Coordinates);
+            leftCoordinates = result.FirstActiveEventCoordinates ?? readResult.Payload.Next;
+            rightCoordinates = readResult.Payload.Next;
 
             if (result.AggregatedEvents.Any())
                 await SendAggregatedEvents(result, cancellationToken).ConfigureAwait(false);
 
-            await LogProgress(query, events, result, droppedEvents).ConfigureAwait(false);
+            await LogProgress(result, readResult.Payload.Events.Count, eventsDropped, cancellationToken).ConfigureAwait(false);
 
-            await SaveProgress(result.FirstActiveEventCoordinates).ConfigureAwait(false);
+            await SaveProgress().ConfigureAwait(false);
         }
 
         private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
@@ -110,26 +182,27 @@ namespace Vostok.Metrics.Aggregations
             insertResult.EnsureSuccess();
         }
 
-        private async Task SaveProgress(StreamCoordinates coordinates)
+        private async Task SaveProgress()
         {
             try
             {
-                await settings.CoordinatesStorage.AdvanceAsync(coordinates).ConfigureAwait(false);
-                log.Info("Saved coordinates: {StreamCoordinates}.", coordinates);
+                await settings.LeftCoordinatesStorage.AdvanceAsync(leftCoordinates).ConfigureAwait(false);
+                await settings.RightCoordinatesStorage.AdvanceAsync(rightCoordinates).ConfigureAwait(false);
+                log.Info("Saved coordinates: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
             }
             catch (Exception e)
             {
-                log.Error(e, "Failed to save {Coordinates} coordinates.", coordinates);
+                log.Error(e, "Failed to save coordinates: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
             }
         }
 
-        private async Task LogProgress(ReadStreamQuery query, List<MetricEvent> @in, AggregateResult result, int dropped)
+        private async Task LogProgress(AggregateResult result, int eventsIn, int eventsDropped, CancellationToken cancellationToken)
         {
             log.Info(
                 "Global aggregator progress: events in: {EventsIn}, events out: {EventsOut}, events dropped: {EventsDropped}.",
-                @in.Count,
+                eventsIn,
                 result.AggregatedEvents.Count,
-                dropped);
+                eventsDropped);
 
             log.Info(
                 "Global aggregator status: aggregators: {AggregatorsCount}, windows: {WindowsCount}, events: {EventsCount}.",
@@ -137,32 +210,8 @@ namespace Vostok.Metrics.Aggregations
                 result.ActiveWindowsCount,
                 result.ActiveEventsCount);
 
-            var end = await GetEndCoordinates(query).ConfigureAwait(false);
-            if (end != null)
-            {
-                var remainingEvents = StreamCoordinatesMerger.Distance(query.Coordinates, end) - @in.Count;
-                log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remainingEvents);
-            }
-        }
-
-        private async Task<StreamCoordinates> GetEndCoordinates(ReadStreamQuery query)
-        {
-            try
-            {
-                var seekToEndQuery = new SeekToEndStreamQuery(settings.SourceStreamName)
-                {
-                    ClientShard = query.ClientShard,
-                    ClientShardCount = query.ClientShardCount
-                };
-                var end = await settings.StreamClient.SeekToEndAsync(seekToEndQuery, settings.EventsReadTimeout).ConfigureAwait(false);
-
-                return end.Payload.Next;
-            }
-            catch (Exception e)
-            {
-                log.Error(e, "Failed to count remaining events.");
-                return null;
-            }
+            var remaining = await streamReader.CountStreamRemainingEvents(rightCoordinates, shardingSettings).ConfigureAwait(false);
+            log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remaining);
         }
     }
 }

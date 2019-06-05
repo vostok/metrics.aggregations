@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Vostok.Hercules.Client.Abstractions.Models;
+using Vostok.Hercules.Consumers.Helpers;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
 

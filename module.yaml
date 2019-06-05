@@ -17,6 +17,7 @@ notests *default:
     - vostok.metrics
     - vostok.devtools
     - vostok.commons.time/src
+    - vostok.commons.helpers/src
 
 full-build > notests:
   deps:

@@ -28,7 +28,10 @@ namespace Vostok.Metrics.Aggregations
         public IHerculesGateClient GateClient { get; }
 
         [NotNull]
-        public IStreamCoordinatesStorage CoordinatesStorage { get; }
+        public IStreamCoordinatesStorage LeftCoordinatesStorage { get; }
+
+        [NotNull]
+        public IStreamCoordinatesStorage RightCoordinatesStorage { get; }
 
         [NotNull]
         public Func<StreamShardingSettings> ShardingSettingsProvider { get; }
@@ -59,7 +62,8 @@ namespace Vostok.Metrics.Aggregations
             [NotNull] Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
             [NotNull] IHerculesStreamClient streamClient,
             [NotNull] IHerculesGateClient gateClient,
-            [NotNull] IStreamCoordinatesStorage coordinatesStorage,
+            [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
+            [NotNull] IStreamCoordinatesStorage rightCoordinatesStorage,
             [NotNull] Func<StreamShardingSettings> shardingSettingsProvider)
         {
             SourceStreamName = sourceStreamName ?? throw new ArgumentNullException(nameof(sourceStreamName));
@@ -67,7 +71,8 @@ namespace Vostok.Metrics.Aggregations
             AggregateFunctionFactory = aggregateFunctionFactory ?? throw new ArgumentNullException(nameof(aggregateFunctionFactory));
             StreamClient = streamClient ?? throw new ArgumentNullException(nameof(streamClient));
             GateClient = gateClient ?? throw new ArgumentNullException(nameof(gateClient));
-            CoordinatesStorage = coordinatesStorage ?? throw new ArgumentNullException(nameof(coordinatesStorage));
+            LeftCoordinatesStorage = leftCoordinatesStorage ?? throw new ArgumentNullException(nameof(leftCoordinatesStorage));
+            RightCoordinatesStorage = rightCoordinatesStorage ?? throw new ArgumentNullException(nameof(rightCoordinatesStorage));
             ShardingSettingsProvider = shardingSettingsProvider ?? throw new ArgumentNullException(nameof(shardingSettingsProvider));
         }
     }
