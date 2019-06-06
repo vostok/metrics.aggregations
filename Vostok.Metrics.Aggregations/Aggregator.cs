@@ -245,7 +245,7 @@ namespace Vostok.Metrics.Aggregations
 
             var remaining = await streamReader.CountStreamRemainingEvents(rightCoordinates, shardingSettings).ConfigureAwait(false);
             log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remaining);
-            stateMetric.For("remaining").Set(remaining);
+            eventsMetric.For("remaining").Set(remaining);
         }
     }
 }
