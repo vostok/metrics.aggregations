@@ -12,8 +12,10 @@ using Vostok.Hercules.Consumers.Helpers;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
+using Vostok.Metrics.Grouping;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
+using Vostok.Metrics.Primitives.Gauge;
 
 namespace Vostok.Metrics.Aggregations
 {
@@ -31,6 +33,9 @@ namespace Vostok.Metrics.Aggregations
 
         private bool restart;
 
+        private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
+        private readonly IMetricGroup1<IIntegerGauge> stateMetric;
+
         public Aggregator(AggregatorSettings settings, ILog log)
         {
             this.settings = settings;
@@ -46,6 +51,9 @@ namespace Vostok.Metrics.Aggregations
             
             streamReader = new StreamReader(streamReaderSettings, log);
             aggregators = new Dictionary<MetricTags, OneMetricAggregator>();
+
+            eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
+            stateMetric = settings.MetricContext.CreateIntegerGauge("state", "type");
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -221,14 +229,23 @@ namespace Vostok.Metrics.Aggregations
                 result.AggregatedEvents.Count,
                 eventsDropped);
 
+            eventsMetric.For("in").Add(eventsIn);
+            eventsMetric.For("out").Add(result.AggregatedEvents.Count);
+            eventsMetric.For("dropped").Add(eventsDropped);
+
             log.Info(
                 "Global aggregator status: aggregators: {AggregatorsCount}, windows: {WindowsCount}, events: {EventsCount}.",
                 aggregators.Count,
                 result.ActiveWindowsCount,
                 result.ActiveEventsCount);
 
+            stateMetric.For("aggregators").Set(aggregators.Count);
+            stateMetric.For("windows").Set(result.ActiveWindowsCount);
+            stateMetric.For("events").Set(result.ActiveEventsCount);
+
             var remaining = await streamReader.CountStreamRemainingEvents(rightCoordinates, shardingSettings).ConfigureAwait(false);
             log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remaining);
+            stateMetric.For("remaining").Set(remaining);
         }
     }
 }
