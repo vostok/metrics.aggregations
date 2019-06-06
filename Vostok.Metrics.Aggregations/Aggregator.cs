@@ -197,8 +197,8 @@ namespace Vostok.Metrics.Aggregations
         {
             try
             {
-                await settings.LeftCoordinatesStorage.AdvanceAsync(leftCoordinates).ConfigureAwait(false);
                 await settings.RightCoordinatesStorage.AdvanceAsync(rightCoordinates).ConfigureAwait(false);
+                await settings.LeftCoordinatesStorage.AdvanceAsync(leftCoordinates).ConfigureAwait(false);
                 log.Info("Saved coordinates: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
             }
             catch (Exception e)
