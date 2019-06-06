@@ -11,5 +11,11 @@ namespace Vostok.Metrics.Aggregations.Tests
         {
             ThreadPoolUtility.Setup();
         }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            Hercules.Dispose();
+        }
     }
 }

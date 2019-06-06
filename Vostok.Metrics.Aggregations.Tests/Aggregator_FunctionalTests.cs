@@ -31,8 +31,9 @@ namespace Vostok.Metrics.Aggregations.Tests
         private readonly TimeSpan period = 1.Seconds();
         private readonly TimeSpan lag = 1.Seconds();
 
+        private readonly int streamPartitions = 3;
         private readonly int aggregatorsCount = 2;
-        private readonly int sendersCount = 4;
+        private readonly int sendersCount = 5;
         private readonly int sendTimersPerSecond = 10;
 
         private readonly int expectedGoodIterations = 3;
@@ -70,7 +71,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                             var createResult = await management.CreateStreamAsync(
                                 new CreateStreamQuery(name)
                                 {
-                                    Partitions = 2,
+                                    Partitions = streamPartitions,
                                     ShardingKey = new[] {"tagsHash"}
                                 },
                                 20.Seconds());
@@ -100,29 +101,49 @@ namespace Vostok.Metrics.Aggregations.Tests
             cancellationTokenSource.Cancel();
         }
 
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            Hercules.Instance.Dispose();
-        }
-
         [Test]
         public void Should_aggregate_timers()
         {
-            RunAggregators(
-                // ReSharper disable AssignNullToNotNullAttribute
-                senderSettings.TimersStream,
-                senderSettings.FinalStream,
-                // ReSharper restore AssignNullToNotNullAttribute
-                tags => new TimersAggregateFunction(tags));
+            var firstAggregatorsToken = new CancellationTokenSource();
+            var aggregatedEvents = new List<MetricEvent>();
+            var receivedEvents = new Dictionary<(string, DateTime), int>();
+
+            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), firstAggregatorsToken.Token);
 
             RunSenders();
             
-            var aggregatedEvents = new List<MetricEvent>();
             RunConsumer(aggregatedEvents);
 
+            ReadAggregatedEvents(aggregatedEvents, receivedEvents);
+
+            log.Info("Restarting aggregators.");
+            firstAggregatorsToken.Cancel();
+            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), cancellationTokenSource.Token);
+            ReadAggregatedEvents(aggregatedEvents, receivedEvents);
+            
+            var sentEvents = testMetricSender.Events();
+
+            var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
+            sentEvents = sentEvents.Where(e => RoundUp(e.Timestamp.UtcDateTime) < maxTimestamp).ToList();
+            foreach (var key in receivedEvents.Keys.Where(k => k.Item2 == maxTimestamp).ToList())
+                receivedEvents.Remove(key);
+
+            var expectedRecievedEvents = sentEvents
+                .GroupBy(e => (e.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value, RoundUp(e.Timestamp.UtcDateTime)))
+                .ToDictionary(g => g.Key, g => g.Count())
+                .ToList();
+
+            expectedRecievedEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
+            receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
+
+            Action checkCoordinatesSaving = () => 
+                leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(sentEvents.Count);
+            checkCoordinatesSaving.ShouldPassIn(2.Seconds());
+        }
+
+        private void ReadAggregatedEvents(List<MetricEvent> aggregatedEvents, Dictionary<(string, DateTime), int> receivedEvents)
+        {
             var eventsRecieved = 0L;
-            var receivedEvents = new Dictionary<(string, DateTime), int>();
             var stopwatch = Stopwatch.StartNew();
             var expectedEvents = sendersCount * sendTimersPerSecond * readIterations;
 
@@ -156,28 +177,9 @@ namespace Vostok.Metrics.Aggregations.Tests
                         receivedEvents[key] = 0;
                     receivedEvents[key] += (int)metric.Value;
                 }
-                
+
                 Thread.Sleep(1.Seconds());
             }
-
-            var sentEvents = testMetricSender.Events();
-
-            var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
-            sentEvents = sentEvents.Where(e => RoundUp(e.Timestamp.UtcDateTime) < maxTimestamp).ToList();
-            foreach (var key in receivedEvents.Keys.Where(k => k.Item2 == maxTimestamp).ToList())
-                receivedEvents.Remove(key);
-
-            var expectedRecievedEvents = sentEvents
-                .GroupBy(e => (e.Tags.Single(t => t.Key == WellKnownTagKeys.Name).Value, RoundUp(e.Timestamp.UtcDateTime)))
-                .ToDictionary(g => g.Key, g => g.Count())
-                .ToList();
-
-            expectedRecievedEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
-            receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
-
-            Action checkCoordinatesSaving = () => 
-                leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(eventsRecieved);
-            checkCoordinatesSaving.ShouldPassIn(2.Seconds());
         }
 
         private void RunConsumer(List<MetricEvent> receivedEvents)
@@ -231,9 +233,10 @@ namespace Vostok.Metrics.Aggregations.Tests
         }
 
         private void RunAggregators(
-            [NotNull] string sourceStreamName,
-            [NotNull] string targetStreamName,
-            [NotNull] Func<MetricTags, IAggregateFunction> aggregateFunctionFactory)
+            string sourceStreamName,
+            string targetStreamName,
+            Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
+            CancellationToken cancellationToken)
         {
             for (var i = 0; i < aggregatorsCount; i++)
             {
@@ -253,9 +256,9 @@ namespace Vostok.Metrics.Aggregations.Tests
                     DefaultLag = lag
                 };
 
-                var aggregator = new Aggregator(aggregatorSettings, log.ForContext($"Aggregator-{i}"));
+                var aggregator = new Aggregator(aggregatorSettings, log.ForContext($"Aggregator-{aggregators.Count}"));
 
-                aggregator.RunAsync(cancellationTokenSource.Token);
+                aggregator.RunAsync(cancellationToken);
 
                 aggregators.Add(aggregator);
             }

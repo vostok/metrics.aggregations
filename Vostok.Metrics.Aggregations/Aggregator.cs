@@ -10,6 +10,7 @@ using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Hercules.Consumers.Helpers;
 using Vostok.Logging.Abstractions;
+using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
@@ -58,7 +59,7 @@ namespace Vostok.Metrics.Aggregations
                     if (shardingSettings == null || !shardingSettings.Equals(newShardingSettings))
                     {
                         log.Info(
-                            "Observed new sharding settings: shard with index {ShardIndex} from {ShardCount}. Syncing coordinates.",
+                            "Observed new sharding settings: shard with index {ShardIndex} from {ShardCount}. Restarting aggregation.",
                             newShardingSettings.ClientShardIndex,
                             newShardingSettings.ClientShardCount);
 
@@ -97,15 +98,26 @@ namespace Vostok.Metrics.Aggregations
 
             log.Info("Updated coordinates from storage: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
 
+            var segmentReaderSettings = new StreamSegmentReaderSettings(
+                settings.SourceStreamName,
+                settings.StreamClient,
+                leftCoordinates,
+                rightCoordinates)
+            {
+                EventsBatchSize = settings.EventsBatchSize,
+                EventsReadTimeout = settings.EventsReadTimeout
+            };
+
+            var segmentReader = new StreamSegmentReader(segmentReaderSettings, log);
+
             var coordinates = leftCoordinates;
 
             while (true)
             {
-                var distance = StreamCoordinatesMerger.Distance(coordinates, rightCoordinates);
-                if (distance <= 0)
+                var (query, result) = await segmentReader.ReadAsync(coordinates, shardingSettings, cancellationToken).ConfigureAwait(false);
+                if (result == null)
                     break;
 
-                var (query, result) = await streamReader.ReadAsync(coordinates, shardingSettings, cancellationToken).ConfigureAwait(false);
                 foreach (var @event in result.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
                 {
                     if (!aggregators.ContainsKey(@event.Tags))
@@ -122,7 +134,6 @@ namespace Vostok.Metrics.Aggregations
             }
             
             rightCoordinates = coordinates;
-
             log.Info("Coordinates after restart: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
         }
 
