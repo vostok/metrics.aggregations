@@ -8,7 +8,7 @@ using Vostok.Logging.Console;
 
 namespace Vostok.Metrics.Aggregations.Tests
 {
-    internal class Hercules : IDisposable
+    internal class Hercules
     {
         // ReSharper disable once InconsistentNaming
         private static readonly Lazy<Hercules> instance = new Lazy<Hercules>(() => new Hercules());
@@ -59,10 +59,13 @@ namespace Vostok.Metrics.Aggregations.Tests
         public HerculesGateClient Gate { get; }
         public HerculesStreamClient Stream { get; }
 
-        public void Dispose()
+        public static void Dispose()
         {
-            Sink?.Dispose();
-            cluster?.Dispose();
+            if (instance.IsValueCreated)
+            {
+                Instance.Sink?.Dispose();
+                Instance.cluster?.Dispose();
+            }
         }
     }
 }
