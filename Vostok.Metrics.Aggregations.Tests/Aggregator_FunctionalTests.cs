@@ -244,13 +244,13 @@ namespace Vostok.Metrics.Aggregations.Tests
                 var aggregatorSettings = new AggregatorSettings(
                     sourceStreamName,
                     targetStreamName,
-                    aggregateFunctionFactory,
+                    aggregateFunctionFactory, 
                     Hercules.Instance.Stream,
                     Hercules.Instance.Gate,
                     leftCoordinatesStorage,
                     rightCoordinatesStorage,
-                    () => new StreamShardingSettings(index, aggregatorsCount)
-                )
+                    () => new StreamShardingSettings(index, aggregatorsCount),
+                    new DevNullMetricContext())
                 {
                     DefaultPeriod = period,
                     DefaultLag = lag

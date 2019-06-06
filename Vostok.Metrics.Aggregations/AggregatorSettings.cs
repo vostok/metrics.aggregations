@@ -22,6 +22,9 @@ namespace Vostok.Metrics.Aggregations
         public Func<MetricTags, IAggregateFunction> AggregateFunctionFactory { get; }
 
         [NotNull]
+        public IMetricContext MetricContext { get; }
+
+        [NotNull]
         public IHerculesStreamClient StreamClient { get; }
 
         [NotNull]
@@ -64,11 +67,13 @@ namespace Vostok.Metrics.Aggregations
             [NotNull] IHerculesGateClient gateClient,
             [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
             [NotNull] IStreamCoordinatesStorage rightCoordinatesStorage,
-            [NotNull] Func<StreamShardingSettings> shardingSettingsProvider)
+            [NotNull] Func<StreamShardingSettings> shardingSettingsProvider,
+            [NotNull] IMetricContext metricContext)
         {
             SourceStreamName = sourceStreamName ?? throw new ArgumentNullException(nameof(sourceStreamName));
             TargetStreamName = targetStreamName ?? throw new ArgumentNullException(nameof(targetStreamName));
             AggregateFunctionFactory = aggregateFunctionFactory ?? throw new ArgumentNullException(nameof(aggregateFunctionFactory));
+            MetricContext = metricContext ?? throw new ArgumentNullException(nameof(metricContext));
             StreamClient = streamClient ?? throw new ArgumentNullException(nameof(streamClient));
             GateClient = gateClient ?? throw new ArgumentNullException(nameof(gateClient));
             LeftCoordinatesStorage = leftCoordinatesStorage ?? throw new ArgumentNullException(nameof(leftCoordinatesStorage));
