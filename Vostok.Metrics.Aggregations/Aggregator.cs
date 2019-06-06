@@ -173,11 +173,17 @@ namespace Vostok.Metrics.Aggregations
             rightCoordinates = readResult.Payload.Next;
 
             if (result.AggregatedEvents.Any())
+            {
                 await SendAggregatedEvents(result, cancellationToken).ConfigureAwait(false);
+                await SaveProgress().ConfigureAwait(false);
+            }
 
-            await LogProgress(result, readResult.Payload.Events.Count, eventsDropped, cancellationToken).ConfigureAwait(false);
+            await LogProgress(result, readResult.Payload.Events.Count, eventsDropped).ConfigureAwait(false);
 
-            await SaveProgress().ConfigureAwait(false);
+            if (readResult.Payload.Events.Count == 0)
+            {
+                await Task.Delay(settings.DelayOnNoEvents, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
@@ -207,7 +213,7 @@ namespace Vostok.Metrics.Aggregations
             }
         }
 
-        private async Task LogProgress(AggregateResult result, int eventsIn, int eventsDropped, CancellationToken cancellationToken)
+        private async Task LogProgress(AggregateResult result, int eventsIn, int eventsDropped)
         {
             log.Info(
                 "Global aggregator progress: events in: {EventsIn}, events out: {EventsOut}, events dropped: {EventsDropped}.",

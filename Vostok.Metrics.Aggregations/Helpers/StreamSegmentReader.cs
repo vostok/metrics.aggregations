@@ -21,7 +21,7 @@ namespace Vostok.Metrics.Aggregations.Helpers
         public StreamSegmentReader([NotNull] StreamSegmentReaderSettings settings, [CanBeNull] ILog log)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            this.log = (log ?? LogProvider.Get()).ForContext<StreamSegmentReader>();
+            this.log = log = (log ?? LogProvider.Get()).ForContext<StreamSegmentReader>();
 
             var streamReaderSettings = new StreamReaderSettings(
                 settings.StreamName,
@@ -61,7 +61,7 @@ namespace Vostok.Metrics.Aggregations.Helpers
                 {
                     var count = end - start;
 
-                    log.Info("Reading {EventsCount} events from {Partition} partition.", count, partition);
+                    log.Info("Reading {EventsCount} events from partition #{Partition}.", count, partition);
 
                     var (query, result) = await streamReader.ReadAsync(
                             coordinates,
