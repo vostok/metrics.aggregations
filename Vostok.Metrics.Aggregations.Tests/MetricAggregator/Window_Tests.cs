@@ -77,7 +77,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         }
 
         [Test]
-        public void ShouldBeClosedBefore_should_return_if_lag_elapsed()
+        public void ShouldBeClosedBefore_should_be_true_if_lag_elapsed()
         {
             // [40, 50)
             var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), period, lag);
@@ -88,7 +88,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         }
 
         [Test]
-        public void TooLongExists_should_return_if_time_elapsed()
+        public void TooLongExists_should_be_true_if_time_elapsed()
         {
             // [40, 50)
             var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), 0.1.Seconds(), 0.1.Seconds());
@@ -98,6 +98,19 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
             window.TooLongExists().Should().BeFalse();
             Thread.Sleep(0.1.Seconds());
             window.TooLongExists().Should().BeTrue();
+        }
+
+        [Test]
+        public void TooLongExists_should_be_false_if_time_elapsed_on_restart_phase()
+        {
+            // [40, 50)
+            var window = Window.Create(StreamCoordinates.Empty, TestsHelpers.TimestampWithSeconds(42), 0.1.Seconds(), 0.1.Seconds());
+
+            window.TooLongExists(true).Should().BeFalse();
+            Thread.Sleep(0.1.Seconds());
+            window.TooLongExists(true).Should().BeFalse();
+            Thread.Sleep(0.1.Seconds());
+            window.TooLongExists(true).Should().BeFalse();
         }
 
         [Test]
