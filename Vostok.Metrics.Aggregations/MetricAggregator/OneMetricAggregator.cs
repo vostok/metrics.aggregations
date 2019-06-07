@@ -50,11 +50,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        public AggregateResult Aggregate()
+        public AggregateResult Aggregate(bool restartPhase = false)
         {
             try
             {
-                return windows.Aggregate(aggregateFunction);
+                return windows.Aggregate(aggregateFunction, restartPhase);
             }
             catch (Exception e)
             {

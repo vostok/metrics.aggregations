@@ -41,7 +41,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        public AggregateResult Aggregate([NotNull] IAggregateFunction aggregateFunction)
+        public AggregateResult Aggregate([NotNull] IAggregateFunction aggregateFunction, bool restartPhase = false)
         {
             var result = new AggregateResult();
 
@@ -49,7 +49,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             {
                 var window = windows[i];
 
-                if (window.ShouldBeClosedBefore(maximumObservedTimestamp) || window.TooLongExists())
+                if (window.ShouldBeClosedBefore(maximumObservedTimestamp) || window.TooLongExists(restartPhase))
                 {
                     windows.RemoveAt(i--);
 

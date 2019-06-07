@@ -59,8 +59,13 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             return End + Lag <= timestamp;
         }
 
-        public bool TooLongExists()
+        public bool TooLongExists(bool restartPhase = false)
         {
+            if (restartPhase)
+            {
+                lastEventAdded = DateTimeOffset.Now;
+                return false;
+            }
             return DateTimeOffset.Now - lastEventAdded > Period + Lag;
         }
 

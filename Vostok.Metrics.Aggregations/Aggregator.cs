@@ -135,7 +135,7 @@ namespace Vostok.Metrics.Aggregations
 
                 foreach (var aggregator in aggregators)
                 {
-                    aggregator.Value.Aggregate();
+                    aggregator.Value.Aggregate(true);
                 }
 
                 coordinates = result.Payload.Next;
