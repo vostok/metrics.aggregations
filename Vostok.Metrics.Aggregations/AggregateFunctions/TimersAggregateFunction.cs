@@ -10,20 +10,26 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     [PublicAPI]
     public class TimersAggregateFunction : IAggregateFunction
     {
-        private readonly QuantileMetricsBuilder quantileMetricsBuilder;
+        private MetricEvent lastEvent;
+        private List<double> values = new List<double>();
 
-        public TimersAggregateFunction([NotNull] MetricTags tags)
+        public void AddEvent(MetricEvent @event)
         {
-            quantileMetricsBuilder = new QuantileMetricsBuilder(null, tags, null);
+            lastEvent = @event;
+            values.Add(@event.Value);
         }
 
-        public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp)
-            => quantileMetricsBuilder.Build(values.ToArray(), timestamp);
+        public IEnumerable<MetricEvent> Aggregate(DateTimeOffset timestamp)
+        {
+            if (lastEvent == null)
+                return new List<MetricEvent>();
 
-        public void SetUnit(string newUnit)
-            => quantileMetricsBuilder.SetUnit(newUnit);
+            var quantileMetricsBuilder = new QuantileMetricsBuilder(
+                lastEvent.AggregationParameters.GetQuantiles(), 
+                lastEvent.Tags, 
+                lastEvent.Unit);
 
-        public void SetQuantiles(double[] newQuantiles)
-            => quantileMetricsBuilder.SetQuantiles(newQuantiles);
+            return quantileMetricsBuilder.Build(values.ToArray(), timestamp);
+        }
     }
 }

@@ -21,34 +21,28 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         {
             var windows = FilledWindows();
 
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate().AggregatedEvents.Single().Value.Should().Be(45);
         }
 
         [Test]
         public void Aggregate_should_close_windows_after_lag_plus_period_elapsed_since_last_event_add()
         {
             var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
-            windows.Aggregate(aggregate).AggregatedEvents.Should().BeEmpty();
+            
+            windows.Aggregate().AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate().AggregatedEvents.Should().BeEmpty();
 
             Thread.Sleep(period + lag);
 
-            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(46);
+            windows.Aggregate().AggregatedEvents.Single().Value.Should().Be(46);
         }
 
         [Test]
         public void Aggregate_should_calculate_statistic()
         {
             var windows = FilledWindows();
-
-            var aggregate = new TestsHelpers.SumValues();
-
-            var result = windows.Aggregate(aggregate);
+            
+            var result = windows.Aggregate();
             result.AggregatedEvents.Single().Value.Should().Be(45);
             result.ActiveEventsCount.Should().Be(4);
             result.ActiveWindowsCount.Should().Be(1);
@@ -70,9 +64,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         {
             var windows = FilledWindows();
 
-            var aggregate = new TestsHelpers.SumValues();
-
-            windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
+            windows.Aggregate().AggregatedEvents.Single().Value.Should().Be(45);
 
             windows.AddEvent(
                     new MetricEvent(
@@ -82,9 +74,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
-                    StreamCoordinates.Empty,
-                    period,
-                    lag)
+                    StreamCoordinates.Empty)
                 .Should()
                 .BeFalse();
 
@@ -96,16 +86,14 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         null,
                         null,
                         null),
-                    StreamCoordinates.Empty,
-                    period,
-                    lag)
+                    StreamCoordinates.Empty)
                 .Should()
                 .BeTrue();
         }
 
         private Windows FilledWindows()
         {
-            var windows = new Windows();
+            var windows = new Windows(() => new TestsHelpers.SumValues(), period, lag);
 
             for (var seconds = 0; seconds <= 13; seconds++)
             {
@@ -125,9 +113,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                                     Offset = seconds,
                                     Partition = 42
                                 }
-                            }),
-                        period,
-                        lag)
+                            }))
                     .Should()
                     .BeTrue();
             }

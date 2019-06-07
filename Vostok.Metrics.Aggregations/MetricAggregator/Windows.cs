@@ -10,11 +10,21 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class Windows
     {
+        private readonly Func<IAggregateFunction> aggregateFunctionFactory;
+        private readonly TimeSpan defaultPeriod;
+        private readonly TimeSpan defaultLag;
         private readonly List<Window> windows = new List<Window>();
         private DateTimeOffset minimumAllowedTimestamp = DateTimeOffset.MinValue;
         private DateTimeOffset maximumObservedTimestamp = DateTimeOffset.MinValue;
 
-        public bool AddEvent([NotNull] MetricEvent @event, [NotNull] StreamCoordinates coordinates, TimeSpan defaultPeriod, TimeSpan defaultLag)
+        public Windows(Func<IAggregateFunction> aggregateFunctionFactory, TimeSpan defaultPeriod, TimeSpan defaultLag)
+        {
+            this.aggregateFunctionFactory = aggregateFunctionFactory;
+            this.defaultPeriod = defaultPeriod;
+            this.defaultLag = defaultLag;
+        }
+
+        public bool AddEvent([NotNull] MetricEvent @event, [NotNull] StreamCoordinates coordinates)
         {
             if (@event.Timestamp < minimumAllowedTimestamp)
                 return false;
@@ -29,10 +39,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             }
 
             var newWindow = Window.Create(
+                aggregateFunctionFactory(),
                 coordinates,
                 @event.Timestamp,
-                @event.AggregationParameters.GetAggregatePeriod() ?? defaultPeriod,
-                @event.AggregationParameters.GetAggregateLag() ?? defaultLag);
+                @event.AggregationParameters.GetAggregationPeriod() ?? defaultPeriod,
+                @event.AggregationParameters.GetAggregationLag() ?? defaultLag);
 
             newWindow.AddEvent(@event);
             windows.Add(newWindow);
@@ -41,7 +52,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        public AggregateResult Aggregate([NotNull] IAggregateFunction aggregateFunction, bool restartPhase = false)
+        public AggregateResult Aggregate(bool restartPhase = false)
         {
             var result = new AggregateResult();
 
@@ -53,7 +64,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                 {
                     windows.RemoveAt(i--);
 
-                    result.AggregatedEvents.AddRange(window.AggregateEvents(aggregateFunction));
+                    result.AggregatedEvents.AddRange(window.AggregateEvents());
 
                     if (minimumAllowedTimestamp < window.End)
                         minimumAllowedTimestamp = window.End;

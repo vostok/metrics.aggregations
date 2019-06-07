@@ -5,24 +5,25 @@ using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
-using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class Window
     {
+        private readonly IAggregateFunction aggregateFunction;
         public readonly StreamCoordinates FirstEventCoordinates;
         public readonly DateTimeOffset Start;
         public readonly DateTimeOffset End;
         public readonly TimeSpan Period;
         public readonly TimeSpan Lag;
-        private readonly List<double> values = new List<double>();
 
         private DateTimeOffset lastEventAdded;
-        private MetricEvent lastEvent;
 
-        private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
+        public int EventsCount { get; private set; }
+
+        private Window(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
+            this.aggregateFunction = aggregateFunction;
             FirstEventCoordinates = firstEventCoordinates;
             Start = start;
             End = end;
@@ -32,14 +33,12 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         }
 
         [NotNull]
-        public static Window Create(StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan period, TimeSpan lag)
+        public static Window Create(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan period, TimeSpan lag)
         {
             var start = timestamp.AddTicks(-timestamp.Ticks % period.Ticks);
-            var result = new Window(firstEventCoordinates, start, start + period, period, lag);
+            var result = new Window(aggregateFunction, firstEventCoordinates, start, start + period, period, lag);
             return result;
         }
-
-        public int Count => values.Count;
 
         public bool AddEvent([NotNull] MetricEvent @event)
         {
@@ -47,8 +46,8 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                 return false;
 
             lastEventAdded = DateTimeOffset.Now;
-            lastEvent = @event;
-            values.Add(@event.Value);
+            EventsCount++;
+            aggregateFunction.AddEvent(@event);
 
             return true;
         }
@@ -71,15 +70,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         [NotNull]
         [ItemNotNull]
-        public IEnumerable<MetricEvent> AggregateEvents([NotNull] IAggregateFunction aggregateFunction)
+        public IEnumerable<MetricEvent> AggregateEvents()
         {
-            if (lastEvent != null)
-            {
-                aggregateFunction.SetUnit(lastEvent.Unit);
-                aggregateFunction.SetQuantiles(lastEvent.AggregationParameters.GetQuantiles());
-            }
-
-            return aggregateFunction.Aggregate(values, End);
+            return aggregateFunction.Aggregate(End);
         }
     }
 }
