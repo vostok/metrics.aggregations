@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Hercules.Consumers.Helpers;
-using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations.MetricAggregator
@@ -31,11 +30,12 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             ActiveWindowsCount += other.ActiveWindowsCount;
         }
 
-        public void AddActiveCoordinates(StreamCoordinates coordinates)
+        private void AddActiveCoordinates(StreamCoordinates coordinates)
         {
-            FirstActiveEventCoordinates = FirstActiveEventCoordinates == null 
-                ? coordinates 
-                : StreamCoordinatesMerger.MergeMin(FirstActiveEventCoordinates, coordinates);
+            if (FirstActiveEventCoordinates == null)
+                FirstActiveEventCoordinates = coordinates;
+            else if (coordinates != null)
+                FirstActiveEventCoordinates = StreamCoordinatesMerger.MergeMin(FirstActiveEventCoordinates, coordinates);
         }
     }
 }
