@@ -21,7 +21,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
         public int EventsCount { get; private set; }
 
-        private Window(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
+        internal Window(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
             this.aggregateFunction = aggregateFunction;
             FirstEventCoordinates = firstEventCoordinates;
