@@ -16,56 +16,37 @@ namespace Vostok.Metrics.Aggregations.Tests
 
         public class ReturnEvents : IAggregateFunction
         {
-            public string Unit;
-            public double[] Quantiles;
+            private List<MetricEvent> events = new List<MetricEvent>();
 
-            public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp) =>
-                values.Select(
-                    v => new MetricEvent(
-                        v,
-                        new MetricTags(1).Append("key", "value"),
-                        timestamp,
-                        Unit,
-                        null,
-                        null));
-
-            public void SetUnit(string newUnit)
+            public void AddEvent(MetricEvent @event)
             {
-                Unit = newUnit;
+                events.Add(@event);
             }
 
-            public void SetQuantiles(double[] newQuantiles)
-            {
-                Quantiles = newQuantiles;
-            }
+            public IEnumerable<MetricEvent> Aggregate(DateTimeOffset timestamp) =>
+                events;
         }
 
         public class SumValues : IAggregateFunction
         {
-            public string Unit;
-            public double[] Quantiles;
+            private List<MetricEvent> events = new List<MetricEvent>();
 
-            public IEnumerable<MetricEvent> Aggregate(IEnumerable<double> values, DateTimeOffset timestamp) =>
+            public void AddEvent(MetricEvent @event)
+            {
+                events.Add(@event);
+            }
+
+            public IEnumerable<MetricEvent> Aggregate(DateTimeOffset timestamp) =>
                 new List<MetricEvent>
                 {
                     new MetricEvent(
-                        values.Sum(),
-                        new MetricTags(1).Append("key", "value"),
+                        events.Sum(e => e.Value),
+                        events.First().Tags,
                         timestamp,
-                        Unit,
+                        events.First().Unit,
                         null,
                         null)
                 };
-
-            public void SetUnit(string newUnit)
-            {
-                Unit = newUnit;
-            }
-
-            public void SetQuantiles(double[] newQuantiles)
-            {
-                Quantiles = newQuantiles;
-            }
         }
 
         public class TestMetricSender : IMetricEventSender

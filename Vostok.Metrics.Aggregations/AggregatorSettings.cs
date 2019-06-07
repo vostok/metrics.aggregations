@@ -14,7 +14,7 @@ namespace Vostok.Metrics.Aggregations
         public AggregatorSettings(
             [NotNull] string sourceStreamName,
             [NotNull] string targetStreamName,
-            [NotNull] Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
+            [NotNull] Func<IAggregateFunction> aggregateFunctionFactory,
             [NotNull] IHerculesStreamClient streamClient,
             [NotNull] IHerculesGateClient gateClient,
             [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
@@ -40,7 +40,7 @@ namespace Vostok.Metrics.Aggregations
         public string TargetStreamName { get; }
 
         [NotNull]
-        public Func<MetricTags, IAggregateFunction> AggregateFunctionFactory { get; }
+        public Func<IAggregateFunction> AggregateFunctionFactory { get; }
 
         [NotNull]
         public IMetricContext MetricContext { get; }

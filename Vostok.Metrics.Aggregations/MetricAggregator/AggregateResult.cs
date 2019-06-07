@@ -18,7 +18,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         public void AddActiveWindow(Window window)
         {
             ActiveWindowsCount++;
-            ActiveEventsCount += window.Count;
+            ActiveEventsCount += window.EventsCount;
             AddActiveCoordinates(window.FirstEventCoordinates);
         }
 

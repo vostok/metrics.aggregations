@@ -111,7 +111,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             var aggregatedEvents = new List<MetricEvent>();
             var receivedEvents = new Dictionary<(string, DateTime), int>();
 
-            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), firstAggregatorsToken.Token);
+            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, () => new TimersAggregateFunction(), firstAggregatorsToken.Token);
 
             RunSenders();
 
@@ -121,7 +121,7 @@ namespace Vostok.Metrics.Aggregations.Tests
 
             log.Info("Restarting aggregators.");
             firstAggregatorsToken.Cancel();
-            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), cancellationTokenSource.Token);
+            RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, () => new TimersAggregateFunction(), cancellationTokenSource.Token);
             ReadAggregatedEvents(aggregatedEvents, receivedEvents);
 
             var sentEvents = testMetricSender.Events();
@@ -241,7 +241,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         private void RunAggregators(
             string sourceStreamName,
             string targetStreamName,
-            Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
+            Func<IAggregateFunction> aggregateFunctionFactory,
             CancellationToken cancellationToken)
         {
             for (var i = 0; i < aggregatorsCount; i++)
