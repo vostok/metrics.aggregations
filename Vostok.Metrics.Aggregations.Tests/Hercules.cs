@@ -54,11 +54,6 @@ namespace Vostok.Metrics.Aggregations.Tests
 
         public static Hercules Instance => instance.Value;
 
-        public HerculesSink Sink { get; }
-        public HerculesManagementClient Management { get; }
-        public HerculesGateClient Gate { get; }
-        public HerculesStreamClient Stream { get; }
-
         public static void Dispose()
         {
             if (instance.IsValueCreated)
@@ -67,5 +62,10 @@ namespace Vostok.Metrics.Aggregations.Tests
                 Instance.cluster?.Dispose();
             }
         }
+
+        public HerculesSink Sink { get; }
+        public HerculesManagementClient Management { get; }
+        public HerculesGateClient Gate { get; }
+        public HerculesStreamClient Stream { get; }
     }
 }

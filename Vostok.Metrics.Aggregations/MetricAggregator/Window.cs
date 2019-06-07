@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
@@ -17,10 +16,10 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         public readonly DateTimeOffset End;
         public readonly TimeSpan Period;
         public readonly TimeSpan Lag;
+        private readonly List<double> values = new List<double>();
 
         private DateTimeOffset lastEventAdded;
         private MetricEvent lastEvent;
-        private readonly List<double> values = new List<double>();
 
         private Window(StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
@@ -66,6 +65,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                 lastEventAdded = DateTimeOffset.Now;
                 return false;
             }
+
             return DateTimeOffset.Now - lastEventAdded > Period + Lag;
         }
 

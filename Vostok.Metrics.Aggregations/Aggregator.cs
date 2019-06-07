@@ -8,7 +8,6 @@ using Vostok.Commons.Helpers.Extensions;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
-using Vostok.Hercules.Consumers.Helpers;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Aggregations.MetricAggregator;
@@ -27,14 +26,14 @@ namespace Vostok.Metrics.Aggregations
         private readonly Dictionary<MetricTags, OneMetricAggregator> aggregators;
         private readonly StreamReader streamReader;
 
+        private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
+        private readonly IMetricGroup1<IIntegerGauge> stateMetric;
+
         private StreamShardingSettings shardingSettings;
         private StreamCoordinates leftCoordinates;
         private StreamCoordinates rightCoordinates;
 
         private bool restart;
-
-        private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
-        private readonly IMetricGroup1<IIntegerGauge> stateMetric;
 
         public Aggregator(AggregatorSettings settings, ILog log)
         {
@@ -48,7 +47,7 @@ namespace Vostok.Metrics.Aggregations
                 EventsBatchSize = settings.EventsBatchSize,
                 EventsReadTimeout = settings.EventsReadTimeout
             };
-            
+
             streamReader = new StreamReader(streamReaderSettings, log);
             aggregators = new Dictionary<MetricTags, OneMetricAggregator>();
 
@@ -94,7 +93,6 @@ namespace Vostok.Metrics.Aggregations
                     await Task.Delay(settings.DelayOnError, cancellationToken).SilentlyContinue().ConfigureAwait(false);
                 }
             }
-
         }
 
         private async Task Restart(CancellationToken cancellationToken)
@@ -140,7 +138,7 @@ namespace Vostok.Metrics.Aggregations
 
                 coordinates = result.Payload.Next;
             }
-            
+
             rightCoordinates = coordinates;
             log.Info("Coordinates after restart: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
         }

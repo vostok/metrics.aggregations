@@ -52,11 +52,17 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
             result.AggregatedEvents.Single().Value.Should().Be(45);
             result.ActiveEventsCount.Should().Be(4);
             result.ActiveWindowsCount.Should().Be(1);
-            result.FirstActiveEventCoordinates.Should().BeEquivalentTo(new StreamCoordinates(new[] {new StreamPosition
-            {
-                Offset = 10,
-                Partition = 42
-            }}));
+            result.FirstActiveEventCoordinates.Should()
+                .BeEquivalentTo(
+                    new StreamCoordinates(
+                        new[]
+                        {
+                            new StreamPosition
+                            {
+                                Offset = 10,
+                                Partition = 42
+                            }
+                        }));
         }
 
         [Test]
@@ -65,7 +71,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
             var windows = FilledWindows();
 
             var aggregate = new TestsHelpers.SumValues();
-            
+
             windows.Aggregate(aggregate).AggregatedEvents.Single().Value.Should().Be(45);
 
             windows.AddEvent(
@@ -111,11 +117,15 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                             null,
                             null,
                             null),
-                        new StreamCoordinates(new[] {new StreamPosition
-                        {
-                            Offset = seconds,
-                            Partition = 42
-                        }}), 
+                        new StreamCoordinates(
+                            new[]
+                            {
+                                new StreamPosition
+                                {
+                                    Offset = seconds,
+                                    Partition = 42
+                                }
+                            }),
                         period,
                         lag)
                     .Should()

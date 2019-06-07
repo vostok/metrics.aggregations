@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using JetBrains.Annotations;
 using Vostok.Commons.Time;
 using Vostok.Hercules.Client.Abstractions;
@@ -12,6 +11,28 @@ namespace Vostok.Metrics.Aggregations
     [PublicAPI]
     public class AggregatorSettings
     {
+        public AggregatorSettings(
+            [NotNull] string sourceStreamName,
+            [NotNull] string targetStreamName,
+            [NotNull] Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
+            [NotNull] IHerculesStreamClient streamClient,
+            [NotNull] IHerculesGateClient gateClient,
+            [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
+            [NotNull] IStreamCoordinatesStorage rightCoordinatesStorage,
+            [NotNull] Func<StreamShardingSettings> shardingSettingsProvider,
+            [NotNull] IMetricContext metricContext)
+        {
+            SourceStreamName = sourceStreamName ?? throw new ArgumentNullException(nameof(sourceStreamName));
+            TargetStreamName = targetStreamName ?? throw new ArgumentNullException(nameof(targetStreamName));
+            AggregateFunctionFactory = aggregateFunctionFactory ?? throw new ArgumentNullException(nameof(aggregateFunctionFactory));
+            MetricContext = metricContext ?? throw new ArgumentNullException(nameof(metricContext));
+            StreamClient = streamClient ?? throw new ArgumentNullException(nameof(streamClient));
+            GateClient = gateClient ?? throw new ArgumentNullException(nameof(gateClient));
+            LeftCoordinatesStorage = leftCoordinatesStorage ?? throw new ArgumentNullException(nameof(leftCoordinatesStorage));
+            RightCoordinatesStorage = rightCoordinatesStorage ?? throw new ArgumentNullException(nameof(rightCoordinatesStorage));
+            ShardingSettingsProvider = shardingSettingsProvider ?? throw new ArgumentNullException(nameof(shardingSettingsProvider));
+        }
+
         [NotNull]
         public string SourceStreamName { get; }
 
@@ -58,27 +79,5 @@ namespace Vostok.Metrics.Aggregations
         public TimeSpan MaximumEventAfterNow { get; set; } = 1.Minutes();
 
         public TimeSpan MetricTtl { get; set; } = 1.Hours();
-        
-        public AggregatorSettings(
-            [NotNull] string sourceStreamName,
-            [NotNull] string targetStreamName,
-            [NotNull] Func<MetricTags, IAggregateFunction> aggregateFunctionFactory,
-            [NotNull] IHerculesStreamClient streamClient,
-            [NotNull] IHerculesGateClient gateClient,
-            [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
-            [NotNull] IStreamCoordinatesStorage rightCoordinatesStorage,
-            [NotNull] Func<StreamShardingSettings> shardingSettingsProvider,
-            [NotNull] IMetricContext metricContext)
-        {
-            SourceStreamName = sourceStreamName ?? throw new ArgumentNullException(nameof(sourceStreamName));
-            TargetStreamName = targetStreamName ?? throw new ArgumentNullException(nameof(targetStreamName));
-            AggregateFunctionFactory = aggregateFunctionFactory ?? throw new ArgumentNullException(nameof(aggregateFunctionFactory));
-            MetricContext = metricContext ?? throw new ArgumentNullException(nameof(metricContext));
-            StreamClient = streamClient ?? throw new ArgumentNullException(nameof(streamClient));
-            GateClient = gateClient ?? throw new ArgumentNullException(nameof(gateClient));
-            LeftCoordinatesStorage = leftCoordinatesStorage ?? throw new ArgumentNullException(nameof(leftCoordinatesStorage));
-            RightCoordinatesStorage = rightCoordinatesStorage ?? throw new ArgumentNullException(nameof(rightCoordinatesStorage));
-            ShardingSettingsProvider = shardingSettingsProvider ?? throw new ArgumentNullException(nameof(shardingSettingsProvider));
-        }
     }
 }
