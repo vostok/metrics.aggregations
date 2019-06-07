@@ -9,7 +9,7 @@ namespace Vostok.Metrics.Aggregations.Helpers
     internal class StreamSegmentReaderSettings
     {
         public StreamSegmentReaderSettings(
-            [NotNull] string streamName, 
+            [NotNull] string streamName,
             [NotNull] IHerculesStreamClient streamClient,
             [NotNull] StreamCoordinates start,
             [NotNull] StreamCoordinates end)

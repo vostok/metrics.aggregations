@@ -125,7 +125,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                         TestsHelpers.TimestampWithSeconds(41),
                         "unit2",
                         null,
-                        new Dictionary<string, string>().SetQuantiles(new[] { 0.34 }))
+                        new Dictionary<string, string>().SetQuantiles(new[] {0.34}))
                 )
                 .Should()
                 .BeTrue();

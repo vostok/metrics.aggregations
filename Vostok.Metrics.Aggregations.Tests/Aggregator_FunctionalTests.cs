@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Extensions;
-using JetBrains.Annotations;
 using NUnit.Framework;
 using Vostok.Commons.Testing;
 using Vostok.Hercules.Client.Abstractions.Queries;
@@ -83,11 +82,15 @@ namespace Vostok.Metrics.Aggregations.Tests
 
             var herculesSender = new HerculesMetricSender(new HerculesMetricSenderSettings(Hercules.Instance.Sink));
             testMetricSender = new TestsHelpers.TestMetricSender();
-            
+
             metricContext = new MetricContext(
-                new MetricContextConfig(new CompositeMetricEventSender(new IMetricEventSender[] {
-                    herculesSender,
-                    testMetricSender }))
+                new MetricContextConfig(
+                    new CompositeMetricEventSender(
+                        new IMetricEventSender[]
+                        {
+                            herculesSender,
+                            testMetricSender
+                        }))
                 {
                     ErrorCallback = error => log.Error(error)
                 });
@@ -111,7 +114,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), firstAggregatorsToken.Token);
 
             RunSenders();
-            
+
             RunConsumer(aggregatedEvents);
 
             ReadAggregatedEvents(aggregatedEvents, receivedEvents);
@@ -120,7 +123,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             firstAggregatorsToken.Cancel();
             RunAggregators(senderSettings.TimersStream, senderSettings.FinalStream, tags => new TimersAggregateFunction(tags), cancellationTokenSource.Token);
             ReadAggregatedEvents(aggregatedEvents, receivedEvents);
-            
+
             var sentEvents = testMetricSender.Events();
 
             var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
@@ -136,9 +139,15 @@ namespace Vostok.Metrics.Aggregations.Tests
             expectedRecievedEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
             receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
 
-            Action checkCoordinatesSaving = () => 
+            Action checkCoordinatesSaving = () =>
                 leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(sentEvents.Count);
             checkCoordinatesSaving.ShouldPassIn(2.Seconds());
+        }
+
+        private static DateTime RoundUp(DateTime date)
+        {
+            var ticks = 1.Seconds().Ticks;
+            return new DateTime((date.Ticks + ticks) / ticks * ticks, date.Kind);
         }
 
         private void ReadAggregatedEvents(List<MetricEvent> aggregatedEvents, Dictionary<(string, DateTime), int> receivedEvents)
@@ -219,13 +228,10 @@ namespace Vostok.Metrics.Aggregations.Tests
                     {
                         while (!cancellationTokenSource.IsCancellationRequested)
                         {
-                            Parallel.For(0, sendTimersPerSecond / 10, t =>
-                            {
-                                timer.Report(t);
-                            });
+                            Parallel.For(0, sendTimersPerSecond / 10, t => { timer.Report(t); });
 
                             log.Info($"Sender {sender1} reported {sendTimersPerSecond} timers.");
-                            
+
                             await Task.Delay(0.1.Seconds());
                         }
                     });
@@ -244,7 +250,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                 var aggregatorSettings = new AggregatorSettings(
                     sourceStreamName,
                     targetStreamName,
-                    aggregateFunctionFactory, 
+                    aggregateFunctionFactory,
                     Hercules.Instance.Stream,
                     Hercules.Instance.Gate,
                     leftCoordinatesStorage,
@@ -262,12 +268,6 @@ namespace Vostok.Metrics.Aggregations.Tests
 
                 aggregators.Add(aggregator);
             }
-        }
-
-        private static DateTime RoundUp(DateTime date)
-        {
-            var ticks = 1.Seconds().Ticks;
-            return new DateTime((date.Ticks + ticks) / ticks * ticks, date.Kind);
         }
     }
 }

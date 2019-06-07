@@ -26,7 +26,7 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
 
         private readonly int partitions = 3;
         private readonly int readers = 2;
-        
+
         [Test]
         public void Should_read_segments()
         {
@@ -57,6 +57,15 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
             {
                 CheckSegment(segment);
             }
+        }
+
+        private static void ShouldBeEqual(IEnumerable<HerculesEvent> actualEvents, IEnumerable<HerculesEvent> expectedEvents)
+        {
+            // FluentAssertions is slow on large sequences
+            new HashSet<HerculesEvent>(actualEvents)
+                .SetEquals(expectedEvents)
+                .Should()
+                .BeTrue();
         }
 
         private void CheckSegment(Segment segment)
@@ -115,21 +124,13 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
                 @event.AddValue("id", Guid.NewGuid());
                 result.Add(@event.BuildEvent());
             }
+
             return result;
         }
 
         private void SendEvents(List<HerculesEvent> events)
         {
             Hercules.Instance.Gate.Insert(new InsertEventsQuery(streamName, events), timeout).EnsureSuccess();
-        }
-
-        private static void ShouldBeEqual(IEnumerable<HerculesEvent> actualEvents, IEnumerable<HerculesEvent> expectedEvents)
-        {
-            // FluentAssertions is slow on large sequences
-            new HashSet<HerculesEvent>(actualEvents)
-                .SetEquals(expectedEvents)
-                .Should()
-                .BeTrue();
         }
 
         private class Segment

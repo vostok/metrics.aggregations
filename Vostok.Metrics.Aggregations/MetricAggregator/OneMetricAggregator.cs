@@ -10,12 +10,12 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class OneMetricAggregator
     {
+        public DateTimeOffset LastEventAdded;
         private readonly MetricTags tags;
         private readonly AggregatorSettings settings;
         private readonly ILog log;
         private readonly Windows windows;
         private readonly IAggregateFunction aggregateFunction;
-        public DateTimeOffset LastEventAdded;
 
         public OneMetricAggregator(MetricTags tags, AggregatorSettings settings, ILog log)
         {

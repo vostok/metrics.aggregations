@@ -54,7 +54,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
                     windows.RemoveAt(i--);
 
                     result.AggregatedEvents.AddRange(window.AggregateEvents(aggregateFunction));
-                   
+
                     if (minimumAllowedTimestamp < window.End)
                         minimumAllowedTimestamp = window.End;
                 }
