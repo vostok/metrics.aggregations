@@ -66,7 +66,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             return End + Lag <= timestamp;
         }
 
-        public bool TooLongExists(bool restartPhase = false)
+        public bool ExistsForTooLong(bool restartPhase = false)
         {
             if (restartPhase)
             {
