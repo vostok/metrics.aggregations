@@ -21,6 +21,8 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             this.settings = settings;
             this.log = log;
             windows = new Windows(settings.AggregateFunctionFactory, settings.DefaultPeriod, settings.DefaultLag);
+
+            // CR(iloktionov): Use UtcNow to measure diffs.
             LastEventAdded = DateTimeOffset.Now;
         }
 
@@ -28,6 +30,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         {
             try
             {
+                // CR(iloktionov): Call Now only once.
                 if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
                     return false;
 

@@ -4,7 +4,6 @@ using Vostok.Commons.Time;
 using Vostok.Hercules.Client.Abstractions;
 using Vostok.Hercules.Consumers;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
-using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations
 {

@@ -168,11 +168,11 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 0.1.Seconds(), 
                 0.1.Seconds());
 
-            window.TooLongExists().Should().BeFalse();
+            window.ExistsForTooLong().Should().BeFalse();
             Thread.Sleep(0.1.Seconds());
-            window.TooLongExists().Should().BeFalse();
+            window.ExistsForTooLong().Should().BeFalse();
             Thread.Sleep(0.1.Seconds());
-            window.TooLongExists().Should().BeTrue();
+            window.ExistsForTooLong().Should().BeTrue();
         }
 
         [Test]
@@ -186,11 +186,11 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 0.1.Seconds(),
                 0.1.Seconds());
 
-            window.TooLongExists(true).Should().BeFalse();
+            window.ExistsForTooLong(true).Should().BeFalse();
             Thread.Sleep(0.1.Seconds());
-            window.TooLongExists(true).Should().BeFalse();
+            window.ExistsForTooLong(true).Should().BeFalse();
             Thread.Sleep(0.1.Seconds());
-            window.TooLongExists(true).Should().BeFalse();
+            window.ExistsForTooLong(true).Should().BeFalse();
         }
     }
 }

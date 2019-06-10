@@ -29,11 +29,11 @@ namespace Vostok.Metrics.Aggregations
         private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
         private readonly IMetricGroup1<IIntegerGauge> stateMetric;
 
-        private StreamShardingSettings shardingSettings;
-        private StreamCoordinates leftCoordinates;
-        private StreamCoordinates rightCoordinates;
+        private volatile StreamShardingSettings shardingSettings;
+        private volatile StreamCoordinates leftCoordinates;
+        private volatile StreamCoordinates rightCoordinates;
 
-        private bool restart;
+        private volatile bool restart;
 
         public Aggregator(AggregatorSettings settings, ILog log)
         {
@@ -124,6 +124,7 @@ namespace Vostok.Metrics.Aggregations
                 if (result == null)
                     break;
 
+                // CR(iloktionov): Don't stop on a single malformed event.
                 foreach (var @event in result.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
                 {
                     if (!aggregators.ContainsKey(@event.Tags))
@@ -149,6 +150,7 @@ namespace Vostok.Metrics.Aggregations
 
             var eventsDropped = 0;
 
+            // CR(iloktionov): Aggregator shouldn't get stuck on one invalid or malformed event.
             foreach (var @event in readResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
             {
                 if (!aggregators.ContainsKey(@event.Tags))
@@ -192,6 +194,8 @@ namespace Vostok.Metrics.Aggregations
             }
         }
 
+        // CR(iloktionov): Insert events or die trying.
+        // CR(iloktionov): We should also ensure not to send very large batches.
         private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
         {
             var insertQuery = new InsertEventsQuery(
