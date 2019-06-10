@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Vostok.Commons.Time;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Aggregations.Helpers;
@@ -10,6 +11,9 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
     internal class Window
     {
+        private static readonly TimeSpan MaximumAllowedPeriod = 1.Minutes();
+        private static readonly TimeSpan MaximumAllowedLag = 1.Minutes();
+
         private readonly IAggregateFunction aggregateFunction;
         public readonly StreamCoordinates FirstEventCoordinates;
         public readonly DateTimeOffset Start;
@@ -35,6 +39,11 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         [NotNull]
         public static Window Create(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset timestamp, TimeSpan period, TimeSpan lag)
         {
+            if (period > MaximumAllowedPeriod)
+                period = MaximumAllowedPeriod;
+            if (lag > MaximumAllowedLag)
+                lag = MaximumAllowedLag;
+
             var start = timestamp.AddTicks(-timestamp.Ticks % period.Ticks);
             var result = new Window(aggregateFunction, firstEventCoordinates, start, start + period, period, lag);
             return result;
