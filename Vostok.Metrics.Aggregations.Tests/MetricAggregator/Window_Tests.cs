@@ -95,7 +95,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         }
 
         [Test]
-        public void AddEvent_AggregateEvents_should_works_correctly()
+        public void AddEvent_AggregateEvents_should_work_correctly()
         {
             var window = new Window(
                 new TestsHelpers.ReturnEvents(),
