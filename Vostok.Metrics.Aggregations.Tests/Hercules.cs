@@ -5,6 +5,8 @@ using Vostok.Hercules.Client;
 using Vostok.Hercules.Local;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
+using Vostok.Metrics.Hercules;
+using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations.Tests
 {
@@ -30,6 +32,11 @@ namespace Vostok.Metrics.Aggregations.Tests
                 cluster.HerculesStreamApiTopology,
                 GetApiKey);
 
+            var metricsStreamSettings = new HerculesStreamClientSettings<MetricEvent>(
+                cluster.HerculesStreamApiTopology,
+                GetApiKey,
+                new MetricEventsBinaryReader());
+
             var gateSettings = new HerculesGateClientSettings(
                 cluster.HerculesGateTopology,
                 GetApiKey);
@@ -49,6 +56,8 @@ namespace Vostok.Metrics.Aggregations.Tests
 
             Stream = new HerculesStreamClient(streamSettings, log);
 
+            MetricsStream = new HerculesStreamClient<MetricEvent>(metricsStreamSettings, log);
+
             Gate = new HerculesGateClient(gateSettings, log);
         }
 
@@ -67,5 +76,6 @@ namespace Vostok.Metrics.Aggregations.Tests
         public HerculesManagementClient Management { get; }
         public HerculesGateClient Gate { get; }
         public HerculesStreamClient Stream { get; }
+        public HerculesStreamClient<MetricEvent> MetricsStream { get; }
     }
 }

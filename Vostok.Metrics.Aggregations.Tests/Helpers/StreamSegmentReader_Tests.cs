@@ -72,9 +72,9 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
         {
             log.Info($"Checking segment: start: {segment.Start}, end: {segment.End}.");
 
-            var segmentReaderSettings = new StreamSegmentReaderSettings(
+            var segmentReaderSettings = new StreamSegmentReaderSettings<HerculesEvent>(
                 streamName,
-                Hercules.Instance.Stream,
+                Hercules.Instance.Stream.ToGenericClient(),
                 segment.Start,
                 segment.End)
             {
@@ -82,7 +82,7 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
                 EventsReadTimeout = timeout
             };
 
-            var segmentReader = new StreamSegmentReader(segmentReaderSettings, log);
+            var segmentReader = new StreamSegmentReader<HerculesEvent>(segmentReaderSettings, log);
 
             var result = new List<HerculesEvent>();
 

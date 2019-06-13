@@ -4,6 +4,7 @@ using Vostok.Commons.Time;
 using Vostok.Hercules.Client.Abstractions;
 using Vostok.Hercules.Consumers;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
+using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations
 {
@@ -14,7 +15,7 @@ namespace Vostok.Metrics.Aggregations
             [NotNull] string sourceStreamName,
             [NotNull] string targetStreamName,
             [NotNull] Func<IAggregateFunction> aggregateFunctionFactory,
-            [NotNull] IHerculesStreamClient streamClient,
+            [NotNull] IHerculesStreamClient<MetricEvent> streamClient,
             [NotNull] IHerculesGateClient gateClient,
             [NotNull] IStreamCoordinatesStorage leftCoordinatesStorage,
             [NotNull] IStreamCoordinatesStorage rightCoordinatesStorage,
@@ -45,7 +46,7 @@ namespace Vostok.Metrics.Aggregations
         public IMetricContext MetricContext { get; }
 
         [NotNull]
-        public IHerculesStreamClient StreamClient { get; }
+        public IHerculesStreamClient<MetricEvent> StreamClient { get; }
 
         [NotNull]
         public IHerculesGateClient GateClient { get; }

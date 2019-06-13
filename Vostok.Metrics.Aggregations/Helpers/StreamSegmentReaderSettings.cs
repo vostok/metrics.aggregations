@@ -6,11 +6,11 @@ using Vostok.Hercules.Client.Abstractions.Models;
 
 namespace Vostok.Metrics.Aggregations.Helpers
 {
-    internal class StreamSegmentReaderSettings
+    internal class StreamSegmentReaderSettings<T>
     {
         public StreamSegmentReaderSettings(
             [NotNull] string streamName,
-            [NotNull] IHerculesStreamClient streamClient,
+            [NotNull] IHerculesStreamClient<T> streamClient,
             [NotNull] StreamCoordinates start,
             [NotNull] StreamCoordinates end)
         {
@@ -24,7 +24,7 @@ namespace Vostok.Metrics.Aggregations.Helpers
         public string StreamName { get; }
 
         [NotNull]
-        public IHerculesStreamClient StreamClient { get; }
+        public IHerculesStreamClient<T> StreamClient { get; }
 
         [NotNull]
         public Dictionary<int, StreamPosition> Start { get; }

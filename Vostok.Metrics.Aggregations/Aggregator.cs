@@ -24,7 +24,7 @@ namespace Vostok.Metrics.Aggregations
         private readonly AggregatorSettings settings;
         private readonly ILog log;
         private readonly Dictionary<MetricTags, OneMetricAggregator> aggregators;
-        private readonly StreamReader streamReader;
+        private readonly StreamReader<MetricEvent> streamReader;
 
         private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
         private readonly IMetricGroup1<IIntegerGauge> stateMetric;
@@ -40,7 +40,7 @@ namespace Vostok.Metrics.Aggregations
             this.settings = settings;
             this.log = log;
 
-            var streamReaderSettings = new StreamReaderSettings(
+            var streamReaderSettings = new StreamReaderSettings<MetricEvent>(
                 settings.SourceStreamName,
                 settings.StreamClient)
             {
@@ -48,7 +48,7 @@ namespace Vostok.Metrics.Aggregations
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
-            streamReader = new StreamReader(streamReaderSettings, log);
+            streamReader = new StreamReader<MetricEvent>(streamReaderSettings, log);
             aggregators = new Dictionary<MetricTags, OneMetricAggregator>();
 
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
@@ -104,7 +104,7 @@ namespace Vostok.Metrics.Aggregations
 
             log.Info("Updated coordinates from storage: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
 
-            var segmentReaderSettings = new StreamSegmentReaderSettings(
+            var segmentReaderSettings = new StreamSegmentReaderSettings<MetricEvent>(
                 settings.SourceStreamName,
                 settings.StreamClient,
                 leftCoordinates,
@@ -114,7 +114,7 @@ namespace Vostok.Metrics.Aggregations
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
-            var segmentReader = new StreamSegmentReader(segmentReaderSettings, log);
+            var segmentReader = new StreamSegmentReader<MetricEvent>(segmentReaderSettings, log);
 
             var coordinates = leftCoordinates;
 
@@ -124,8 +124,7 @@ namespace Vostok.Metrics.Aggregations
                 if (result == null)
                     break;
 
-                // CR(iloktionov): Don't stop on a single malformed event.
-                foreach (var @event in result.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
+                foreach (var @event in result.Payload.Events)
                 {
                     if (!aggregators.ContainsKey(@event.Tags))
                         aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
@@ -150,8 +149,7 @@ namespace Vostok.Metrics.Aggregations
 
             var eventsDropped = 0;
 
-            // CR(iloktionov): Aggregator shouldn't get stuck on one invalid or malformed event.
-            foreach (var @event in readResult.Payload.Events.Select(HerculesMetricEventFactory.CreateFrom))
+            foreach (var @event in readResult.Payload.Events)
             {
                 if (!aggregators.ContainsKey(@event.Tags))
                     aggregators[@event.Tags] = new OneMetricAggregator(@event.Tags, settings, log);
