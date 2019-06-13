@@ -11,19 +11,19 @@ using Vostok.Logging.Abstractions;
 
 namespace Vostok.Metrics.Aggregations.Helpers
 {
-    internal class StreamSegmentReader
+    internal class StreamSegmentReader<T>
     {
-        private readonly StreamReader streamReader;
-        private readonly StreamSegmentReaderSettings settings;
+        private readonly StreamReader<T> streamReader;
+        private readonly StreamSegmentReaderSettings<T> settings;
         private readonly ILog log;
         private int? streamPartitionsCount;
 
-        public StreamSegmentReader([NotNull] StreamSegmentReaderSettings settings, [CanBeNull] ILog log)
+        public StreamSegmentReader([NotNull] StreamSegmentReaderSettings<T> settings, [CanBeNull] ILog log)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            this.log = log = (log ?? LogProvider.Get()).ForContext<StreamSegmentReader>();
+            this.log = log = (log ?? LogProvider.Get()).ForContext<StreamSegmentReader<T>>();
 
-            var streamReaderSettings = new StreamReaderSettings(
+            var streamReaderSettings = new StreamReaderSettings<T>(
                 settings.StreamName,
                 settings.StreamClient)
             {
@@ -31,10 +31,10 @@ namespace Vostok.Metrics.Aggregations.Helpers
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
-            streamReader = new StreamReader(streamReaderSettings, log);
+            streamReader = new StreamReader<T>(streamReaderSettings, log);
         }
 
-        public async Task<(ReadStreamQuery query, ReadStreamResult result)> ReadAsync(
+        public async Task<(ReadStreamQuery query, ReadStreamResult<T> result)> ReadAsync(
             StreamCoordinates coordinates,
             StreamShardingSettings shardingSettings,
             CancellationToken cancellationToken)
@@ -71,9 +71,11 @@ namespace Vostok.Metrics.Aggregations.Helpers
                             cancellationToken)
                         .ConfigureAwait(false);
 
-                    result = new ReadStreamResult(
+                    result.EnsureSuccess();
+
+                    result = new ReadStreamResult<T>(
                         result.Status,
-                        new ReadStreamPayload(
+                        new ReadStreamPayload<T>(
                             result.Payload.Events,
                             coordinates.SetPosition(result.Payload.Next.Positions.Single())),
                         result.ErrorDetails);
