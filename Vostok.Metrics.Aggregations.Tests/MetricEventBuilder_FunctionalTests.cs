@@ -5,6 +5,7 @@ using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
 using Vostok.Hercules.Client.Abstractions;
+using Vostok.Hercules.Client.Abstractions.Events;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
@@ -29,9 +30,10 @@ namespace Vostok.Metrics.Aggregations.Tests
                 },
                 timeout);
 
-            var events = new List<MetricEvent>();
+            var events = new List<HerculesEvent>();
+            var random = new Random();
 
-            for (var i = 0; i < 100; i++)
+            for (var i = 0; i < 1000; i++)
             {
                 var tags = MetricTags.Empty
                     .Append("common", "value")
@@ -49,15 +51,46 @@ namespace Vostok.Metrics.Aggregations.Tests
                         ["id-param"] = (i % 10).ToString()
                     });
 
-                events.Add(@event);
+                var builder = new HerculesEventBuilder();
+                HerculesEventMetricBuilder.Build(@event, builder);
 
+                CorruptEvent(random, builder);
+                
+                events.Add(builder.BuildEvent());
             }
 
-            Hercules.Instance.Gate.Insert(new InsertEventsQuery(streamName, events.Select(HerculesEventMetricBuilder.Build).ToList()), timeout).EnsureSuccess();
+            Hercules.Instance.Gate.Insert(new InsertEventsQuery(streamName, events), timeout).EnsureSuccess();
 
             var actual = Hercules.Instance.MetricsStream.Read(new ReadStreamQuery(streamName), timeout).Payload.Events;
 
-            actual.Should().BeEquivalentTo(events);
+            var expected = new List<MetricEvent>();
+            foreach (var @event in events)
+            {
+                try
+                {
+                    expected.Add(HerculesMetricEventFactory.CreateFrom(@event));
+                }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch (Exception)
+                {
+
+                }
+            }
+
+            actual.Should().BeEquivalentTo(expected);
+        }
+
+        private static void CorruptEvent(Random random, HerculesEventBuilder builder)
+        {
+            if (random.Next(10) == 0)
+            {
+                builder.RemoveTags("tags");
+            }
+
+            if (random.Next(10) == 0)
+            {
+                builder.AddContainer("a", b => b.AddContainer("b", bb => bb.AddValue("value", "str")));
+            }
         }
     }
 }
