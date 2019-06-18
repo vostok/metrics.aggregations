@@ -29,8 +29,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
                 lastEvent.Tags, 
                 lastEvent.Unit);
 
-            // CR(iloktionov): Avoid copying resulting from ToArray().
-            return quantileMetricsBuilder.Build(values.ToArray(), timestamp);
+            return quantileMetricsBuilder.Build(values, timestamp);
         }
     }
 }
