@@ -192,19 +192,34 @@ namespace Vostok.Metrics.Aggregations
             }
         }
 
-        // CR(iloktionov): Insert events or die trying.
-        // CR(iloktionov): We should also ensure not to send very large batches.
         private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
         {
-            var insertQuery = new InsertEventsQuery(
-                settings.TargetStreamName,
-                result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList());
+            var events = result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList();
 
-            var insertResult = await settings.GateClient
-                .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
-                .ConfigureAwait(false);
+            while (events.Any())
+            {
+                try
+                {
+                    var insertQuery = new InsertEventsQuery(
+                        settings.TargetStreamName,
+                        events.Take(settings.EventsSendBatchSize).ToList());
 
-            insertResult.EnsureSuccess();
+                    var insertResult = await settings.GateClient
+                        .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    insertResult.EnsureSuccess();
+
+                    events = events.Skip(settings.EventsSendBatchSize).ToList();
+
+                    break;
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Failed to send aggregated events.");
+                    await Task.Delay(settings.DelayOnError, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
 
         private async Task SaveProgress()
