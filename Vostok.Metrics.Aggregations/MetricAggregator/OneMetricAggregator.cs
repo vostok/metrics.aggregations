@@ -29,13 +29,13 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
         {
             try
             {
-                // CR(iloktionov): Call Now only once.
-                if (!@event.Timestamp.InInterval(DateTimeOffset.Now - settings.MaximumEventBeforeNow, DateTimeOffset.Now + settings.MaximumEventAfterNow))
+                var now = DateTimeOffset.Now;
+                if (!@event.Timestamp.InInterval(now - settings.MaximumEventBeforeNow, now + settings.MaximumEventAfterNow))
                     return false;
 
                 if (windows.AddEvent(@event, coordinates))
                 {
-                    LastEventAdded = DateTimeOffset.UtcNow;
+                    LastEventAdded = now.UtcDateTime;
                     return true;
                 }
 
