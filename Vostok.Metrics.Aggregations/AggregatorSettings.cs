@@ -64,6 +64,8 @@ namespace Vostok.Metrics.Aggregations
 
         public int EventsBatchSize { get; set; } = 100_000;
 
+        public int EventsSendBatchSize { get; set; } = 1_000;
+        
         public TimeSpan EventsReadTimeout { get; set; } = TimeSpan.FromSeconds(45);
 
         public TimeSpan DelayOnError { get; set; } = TimeSpan.FromSeconds(5);
