@@ -166,7 +166,7 @@ namespace Vostok.Metrics.Aggregations
                 result.AddAggregateResult(aggregateResult);
 
                 if (aggregateResult.ActiveEventsCount == 0
-                    && DateTimeOffset.Now - aggregator.Value.LastEventAdded > settings.MetricTtl)
+                    && DateTimeOffset.UtcNow - aggregator.Value.LastEventAdded > settings.MetricTtl)
                     staleAggregators.Add(aggregator.Key);
             }
 
