@@ -22,8 +22,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             this.log = log;
             windows = new Windows(settings.AggregateFunctionFactory, settings.DefaultPeriod, settings.DefaultLag);
 
-            // CR(iloktionov): Use UtcNow to measure diffs.
-            LastEventAdded = DateTimeOffset.Now;
+            LastEventAdded = DateTimeOffset.UtcNow;
         }
 
         public bool AddEvent([NotNull] MetricEvent @event, [NotNull] StreamCoordinates coordinates)
@@ -36,7 +35,7 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
 
                 if (windows.AddEvent(@event, coordinates))
                 {
-                    LastEventAdded = DateTimeOffset.Now;
+                    LastEventAdded = DateTimeOffset.UtcNow;
                     return true;
                 }
 
