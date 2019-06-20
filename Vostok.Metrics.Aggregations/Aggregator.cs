@@ -44,7 +44,7 @@ namespace Vostok.Metrics.Aggregations
                 settings.SourceStreamName,
                 settings.StreamClient)
             {
-                EventsBatchSize = settings.EventsBatchSize,
+                EventsBatchSize = settings.EventsReadBatchSize,
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
@@ -110,7 +110,7 @@ namespace Vostok.Metrics.Aggregations
                 leftCoordinates,
                 rightCoordinates)
             {
-                EventsBatchSize = settings.EventsBatchSize,
+                EventsBatchSize = settings.EventsReadBatchSize,
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 

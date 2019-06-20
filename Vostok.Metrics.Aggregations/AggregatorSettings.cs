@@ -62,7 +62,7 @@ namespace Vostok.Metrics.Aggregations
 
         public TimeSpan EventsWriteTimeout { get; set; } = 45.Seconds();
 
-        public int EventsBatchSize { get; set; } = 100_000;
+        public int EventsReadBatchSize { get; set; } = 100_000;
 
         public int EventsSendBatchSize { get; set; } = 1_000;
         
