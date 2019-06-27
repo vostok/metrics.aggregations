@@ -3,20 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using Vostok.Metrics.Models;
-using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.AggregateFunctions
 {
     [PublicAPI]
-    public class TimersAggregateFunction : IAggregateFunction
+    public class CountersAggregateFunction : IAggregateFunction
     {
         private MetricEvent lastEvent;
-        private List<double> values = new List<double>();
+        private double count;
 
         public void AddEvent(MetricEvent @event)
         {
             lastEvent = @event;
-            values.Add(@event.Value);
+            count += @event.Value;
         }
 
         public IEnumerable<MetricEvent> Aggregate(DateTimeOffset timestamp)
@@ -24,12 +23,15 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
             if (lastEvent == null)
                 return Enumerable.Empty<MetricEvent>();
 
-            var quantileMetricsBuilder = new QuantileMetricsBuilder(
-                lastEvent.AggregationParameters.GetQuantiles(),
+            var result = new MetricEvent(
+                count,
                 lastEvent.Tags,
-                lastEvent.Unit);
+                timestamp,
+                lastEvent.Unit,
+                null,
+                null);
 
-            return quantileMetricsBuilder.Build(values, timestamp);
+            return new[] {result};
         }
     }
 }

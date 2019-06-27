@@ -37,11 +37,11 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void AddEvent_should_check_in_interval_and_AggregateEvents_after()
         {
             var window = new Window(
-                new TestsHelpers.ReturnEvents(), 
-                StreamCoordinates.Empty, 
-                TestsHelpers.TimestampWithSeconds(40), 
-                TestsHelpers.TimestampWithSeconds(50), 
-                period, 
+                new TestsHelpers.ReturnEvents(),
+                StreamCoordinates.Empty,
+                TestsHelpers.TimestampWithSeconds(40),
+                TestsHelpers.TimestampWithSeconds(50),
+                period,
                 lag);
 
             window.AddEvent(
@@ -165,7 +165,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
                 StreamCoordinates.Empty,
                 TestsHelpers.TimestampWithSeconds(40),
                 TestsHelpers.TimestampWithSeconds(50),
-                0.1.Seconds(), 
+                0.1.Seconds(),
                 0.1.Seconds());
 
             window.ExistsForTooLong().Should().BeFalse();

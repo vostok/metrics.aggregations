@@ -220,14 +220,16 @@ namespace Vostok.Metrics.Aggregations.Tests
         {
             for (var sender = 0; sender < sendersCount; sender++)
             {
-                var timer = metricContext.CreateTimer($"timer-{sender}", new TimerConfig()
-                {
-                    Unit = "unit",
-                    AggregationParameters = new Dictionary<string, string>()
+                var timer = metricContext.CreateTimer(
+                    $"timer-{sender}",
+                    new TimerConfig
                     {
-                        ["key"] = "value"
-                    }
-                });
+                        Unit = "unit",
+                        AggregationParameters = new Dictionary<string, string>
+                        {
+                            ["key"] = "value"
+                        }
+                    });
 
                 var sender1 = sender;
                 Task.Run(
