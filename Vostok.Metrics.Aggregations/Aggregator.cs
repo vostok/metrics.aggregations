@@ -53,6 +53,7 @@ namespace Vostok.Metrics.Aggregations
 
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
             stateMetric = settings.MetricContext.CreateIntegerGauge("state", "type");
+            settings.MetricContext.CreateFuncGauge("events", "type").For("remaining").SetValueProvider(CountStreamRemainingEvents);
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -184,7 +185,7 @@ namespace Vostok.Metrics.Aggregations
                 await SaveProgress().ConfigureAwait(false);
             }
 
-            await LogProgress(result, readResult.Payload.Events.Count, eventsDropped).ConfigureAwait(false);
+            LogProgress(result, readResult.Payload.Events.Count, eventsDropped);
 
             if (readResult.Payload.Events.Count == 0)
             {
@@ -236,7 +237,7 @@ namespace Vostok.Metrics.Aggregations
             }
         }
 
-        private async Task LogProgress(AggregateResult result, int eventsIn, int eventsDropped)
+        private void LogProgress(AggregateResult result, int eventsIn, int eventsDropped)
         {
             log.Info(
                 "Global aggregator progress: events in: {EventsIn}, events out: {EventsOut}, events dropped: {EventsDropped}.",
@@ -257,10 +258,13 @@ namespace Vostok.Metrics.Aggregations
             stateMetric.For("aggregators").Set(aggregators.Count);
             stateMetric.For("windows").Set(result.ActiveWindowsCount);
             stateMetric.For("events").Set(result.ActiveEventsCount);
+        }
 
-            var remaining = await streamReader.CountStreamRemainingEvents(rightCoordinates, shardingSettings).ConfigureAwait(false);
+        private double CountStreamRemainingEvents()
+        {
+            var remaining = streamReader.CountStreamRemainingEvents(rightCoordinates, shardingSettings).GetAwaiter().GetResult();
             log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remaining);
-            eventsMetric.For("remaining").Set(remaining);
+            return remaining;
         }
     }
 }
