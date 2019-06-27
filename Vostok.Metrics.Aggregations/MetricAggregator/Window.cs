@@ -13,17 +13,15 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
     {
         private static readonly TimeSpan MaximumAllowedPeriod = 1.Minutes();
         private static readonly TimeSpan MaximumAllowedLag = 1.Minutes();
-
-        private readonly IAggregateFunction aggregateFunction;
         public readonly StreamCoordinates FirstEventCoordinates;
         public readonly DateTimeOffset Start;
         public readonly DateTimeOffset End;
         public readonly TimeSpan Period;
         public readonly TimeSpan Lag;
 
-        private DateTimeOffset lastEventAdded;
+        private readonly IAggregateFunction aggregateFunction;
 
-        public int EventsCount { get; private set; }
+        private DateTimeOffset lastEventAdded;
 
         internal Window(IAggregateFunction aggregateFunction, StreamCoordinates firstEventCoordinates, DateTimeOffset start, DateTimeOffset end, TimeSpan period, TimeSpan lag)
         {
@@ -48,6 +46,8 @@ namespace Vostok.Metrics.Aggregations.MetricAggregator
             var result = new Window(aggregateFunction, firstEventCoordinates, start, start + period, period, lag);
             return result;
         }
+
+        public int EventsCount { get; private set; }
 
         public bool AddEvent([NotNull] MetricEvent @event)
         {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
@@ -25,7 +24,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             management.CreateStream(
                 new CreateStreamQuery(streamName)
                 {
-                    ShardingKey = new[] { "hash" },
+                    ShardingKey = new[] {"hash"},
                     Partitions = 1
                 },
                 timeout);
@@ -55,7 +54,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                 HerculesEventMetricBuilder.Build(@event, builder);
 
                 CorruptEvent(random, builder);
-                
+
                 events.Add(builder.BuildEvent());
             }
 
@@ -73,7 +72,6 @@ namespace Vostok.Metrics.Aggregations.Tests
                 // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
-
                 }
             }
 

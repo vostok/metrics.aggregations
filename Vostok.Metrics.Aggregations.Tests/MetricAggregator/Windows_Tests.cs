@@ -28,7 +28,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void Aggregate_should_close_windows_after_lag_plus_period_elapsed_since_last_event_add()
         {
             var windows = FilledWindows();
-            
+
             windows.Aggregate().AggregatedEvents.Single().Value.Should().Be(45);
             windows.Aggregate().AggregatedEvents.Should().BeEmpty();
 
@@ -41,7 +41,7 @@ namespace Vostok.Metrics.Aggregations.Tests.MetricAggregator
         public void Aggregate_should_calculate_statistic()
         {
             var windows = FilledWindows();
-            
+
             var result = windows.Aggregate();
             result.AggregatedEvents.Single().Value.Should().Be(45);
             result.ActiveEventsCount.Should().Be(4);
