@@ -60,20 +60,17 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
             var skip = quantile * totalCount;
 
             var i = 0;
-            while (i < sortedBuckets.Count && sortedBuckets[i].Value < skip)
+            while (i + 1 < sortedBuckets.Count && sortedBuckets[i].Value < skip)
             {
                 skip -= sortedBuckets[i].Value;
                 i++;
             }
-
-            if (i == sortedBuckets.Count)
-                return null;
-
+            
             var bucket = sortedBuckets[i].Key;
             var value = sortedBuckets[i].Value;
 
             if (double.IsPositiveInfinity(bucket.UpperBound))
-                return null;
+                return bucket.LowerBound;
 
             if (double.IsNegativeInfinity(bucket.LowerBound))
                 return bucket.UpperBound;

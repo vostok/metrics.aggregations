@@ -53,7 +53,7 @@ namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
                 .BeEquivalentTo(
                     new MetricEvent(1, tags.Append(WellKnownTagKeys.Aggregate, "p10"), timestamp + 1.Minutes(), "unicorns", null, null),
                     new MetricEvent(1.375, tags.Append(WellKnownTagKeys.Aggregate, "p50"), timestamp + 1.Minutes(), "unicorns", null, null),
-                    //new MetricEvent(2.250, tags.Append(WellKnownTagKeys.Aggregate, "p75"), timestamp + 1.Minutes(), "unicorns", null, null),
+                    new MetricEvent(2, tags.Append(WellKnownTagKeys.Aggregate, "p75"), timestamp + 1.Minutes(), "unicorns", null, null),
                     new MetricEvent(45, tags.Append(WellKnownTagKeys.Aggregate, WellKnownTagValues.AggregateCount), timestamp + 1.Minutes(), null, null, null)
                 );
         }
@@ -62,7 +62,7 @@ namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
         [TestCase(5.0 / 18, 15)]
         [TestCase(8.0 / 18, 24)]
         [TestCase(12.0 / 18, 40)]
-        [TestCase(13.0 / 18, null)]
+        [TestCase(13.0 / 18, 40)]
         public void GetQuantile_should_works_correctly(double quantile, double? expected)
         {
             var buckets = new List<KeyValuePair<HistogramBucket, double>>
