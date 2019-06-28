@@ -15,6 +15,7 @@ using Vostok.Metrics.Grouping;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
 using Vostok.Metrics.Primitives.Gauge;
+using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations
 {
@@ -28,6 +29,7 @@ namespace Vostok.Metrics.Aggregations
 
         private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
         private readonly IMetricGroup1<IIntegerGauge> stateMetric;
+        private readonly IMetricGroup1<ITimer> timeMetric;
 
         private volatile StreamShardingSettings shardingSettings;
         private volatile StreamCoordinates leftCoordinates;
@@ -54,6 +56,7 @@ namespace Vostok.Metrics.Aggregations
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
             stateMetric = settings.MetricContext.CreateIntegerGauge("state", "type");
             settings.MetricContext.CreateFuncGauge("events", "type").For("remaining").SetValueProvider(CountStreamRemainingEvents);
+            timeMetric = settings.MetricContext.CreateSummary("time", "operation", new SummaryConfig {Quantiles = new []{0.5, 0.75, 1}});
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -82,7 +85,10 @@ namespace Vostok.Metrics.Aggregations
                         restart = false;
                     }
 
-                    await MakeIteration(cancellationToken).ConfigureAwait(false);
+                    using (timeMetric.For("iteration").Measure())
+                    {
+                        await MakeIteration(cancellationToken).ConfigureAwait(false);
+                    }
                 }
                 catch (Exception error)
                 {
