@@ -85,7 +85,7 @@ namespace Vostok.Metrics.Aggregations
                         restart = false;
                     }
 
-                    using (iterationMetric.For("iteration").Measure())
+                    using (iterationMetric.For("time").Measure())
                     {
                         await MakeIteration(cancellationToken).ConfigureAwait(false);
                     }
