@@ -127,8 +127,8 @@ namespace Vostok.Metrics.Aggregations.Tests
             var sentEvents = testMetricSender.Events();
 
             var maxTimestamp = receivedEvents.Keys.Max(k => k.Item2);
-            sentEvents = sentEvents.Where(e => RoundUp(e.Timestamp.UtcDateTime) < maxTimestamp).ToList();
-            foreach (var key in receivedEvents.Keys.Where(k => k.Item2 == maxTimestamp).ToList())
+            sentEvents = sentEvents.Where(e => maxTimestamp - RoundUp(e.Timestamp.UtcDateTime) > period).ToList();
+            foreach (var key in receivedEvents.Keys.Where(k => maxTimestamp - k.Item2 <= period).ToList())
                 receivedEvents.Remove(key);
 
             var expectedRecievedEvents = sentEvents
@@ -139,9 +139,8 @@ namespace Vostok.Metrics.Aggregations.Tests
             expectedRecievedEvents.Count.Should().BeGreaterOrEqualTo(expectedGoodIterations);
             receivedEvents.Should().BeEquivalentTo(expectedRecievedEvents);
 
-            Action checkCoordinatesSaving = () =>
-                leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(sentEvents.Count);
-            checkCoordinatesSaving.ShouldPassIn(2.Seconds());
+            leftCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(expectedRecievedEvents.Count);
+            rightCoordinatesStorage.GetCurrentAsync().Result.Positions.Sum(p => p.Offset).Should().BeGreaterOrEqualTo(expectedRecievedEvents.Count);
         }
 
         private static DateTime RoundUp(DateTime date)
