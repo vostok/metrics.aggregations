@@ -28,7 +28,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         private readonly ILog log = new SynchronousConsoleLog();
 
         private readonly TimeSpan period = 1.Seconds();
-        private readonly TimeSpan lag = 1.Seconds();
+        private readonly TimeSpan lag = 2.Seconds();
 
         private readonly int streamPartitions = 3;
         private readonly int aggregatorsCount = 2;
@@ -229,6 +229,8 @@ namespace Vostok.Metrics.Aggregations.Tests
                         {
                             ["key"] = "value"
                         }
+                            .SetAggregationPeriod(period)
+                            .SetAggregationLag(lag)
                     });
 
                 var sender1 = sender;
@@ -265,11 +267,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                     leftCoordinatesStorage,
                     rightCoordinatesStorage,
                     () => new StreamShardingSettings(index, aggregatorsCount),
-                    new DevNullMetricContext())
-                {
-                    DefaultPeriod = period,
-                    DefaultLag = lag
-                };
+                    new DevNullMetricContext());
 
                 var aggregator = new Aggregator(aggregatorSettings, log.ForContext($"Aggregator-{aggregators.Count}"));
 
