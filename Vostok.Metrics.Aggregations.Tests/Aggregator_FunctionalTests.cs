@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
-using Vostok.Commons.Testing;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Logging.Abstractions;
@@ -225,9 +224,9 @@ namespace Vostok.Metrics.Aggregations.Tests
                     {
                         Unit = "unit",
                         AggregationParameters = new Dictionary<string, string>
-                        {
-                            ["key"] = "value"
-                        }
+                            {
+                                ["key"] = "value"
+                            }
                             .SetAggregationPeriod(period)
                             .SetAggregationLag(lag)
                     });
