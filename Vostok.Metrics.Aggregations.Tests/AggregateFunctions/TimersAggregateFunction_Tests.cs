@@ -5,7 +5,6 @@ using FluentAssertions.Extensions;
 using NUnit.Framework;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Models;
-using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
 {

@@ -56,7 +56,7 @@ namespace Vostok.Metrics.Aggregations
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
             stateMetric = settings.MetricContext.CreateIntegerGauge("state", "type");
             settings.MetricContext.CreateFuncGauge("events", "type").For("remaining").SetValueProvider(CountStreamRemainingEvents);
-            iterationMetric = settings.MetricContext.CreateSummary("iteration", "type", new SummaryConfig {Quantiles = new []{0.5, 0.75, 1}});
+            iterationMetric = settings.MetricContext.CreateSummary("iteration", "type", new SummaryConfig {Quantiles = new[] {0.5, 0.75, 1}});
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)

@@ -13,6 +13,33 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
         private MetricEvent lastEvent;
         private Dictionary<HistogramBucket, double> buckets = new Dictionary<HistogramBucket, double>();
 
+        public static double? GetQuantile(List<KeyValuePair<HistogramBucket, double>> sortedBuckets, double quantile)
+        {
+            var totalCount = sortedBuckets.Sum(x => x.Value);
+            var skip = quantile * totalCount;
+
+            var i = 0;
+            while (i + 1 < sortedBuckets.Count && sortedBuckets[i].Value < skip)
+            {
+                skip -= sortedBuckets[i].Value;
+                i++;
+            }
+
+            var bucket = sortedBuckets[i].Key;
+            var value = sortedBuckets[i].Value;
+
+            if (double.IsPositiveInfinity(bucket.UpperBound))
+                return bucket.LowerBound;
+
+            if (double.IsNegativeInfinity(bucket.LowerBound))
+                return bucket.UpperBound;
+
+            var length = bucket.UpperBound - bucket.LowerBound;
+            var result = bucket.LowerBound + skip / value * length;
+
+            return result;
+        }
+
         public void AddEvent(MetricEvent @event)
         {
             lastEvent = @event;
@@ -50,33 +77,6 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
             var totalCount = sortedBuckets.Sum(x => x.Value);
             var countTags = tags.Append(WellKnownTagKeys.Aggregate, WellKnownTagValues.AggregateCount);
             result.Add(new MetricEvent(totalCount, countTags, timestamp, null, null, null));
-
-            return result;
-        }
-
-        public static double? GetQuantile(List<KeyValuePair<HistogramBucket, double>> sortedBuckets, double quantile)
-        {
-            var totalCount = sortedBuckets.Sum(x => x.Value);
-            var skip = quantile * totalCount;
-
-            var i = 0;
-            while (i + 1 < sortedBuckets.Count && sortedBuckets[i].Value < skip)
-            {
-                skip -= sortedBuckets[i].Value;
-                i++;
-            }
-            
-            var bucket = sortedBuckets[i].Key;
-            var value = sortedBuckets[i].Value;
-
-            if (double.IsPositiveInfinity(bucket.UpperBound))
-                return bucket.LowerBound;
-
-            if (double.IsNegativeInfinity(bucket.LowerBound))
-                return bucket.UpperBound;
-
-            var length = bucket.UpperBound - bucket.LowerBound;
-            var result = bucket.LowerBound + skip / value * length;
 
             return result;
         }
