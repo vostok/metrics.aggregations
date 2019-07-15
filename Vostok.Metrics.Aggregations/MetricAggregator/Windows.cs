@@ -4,7 +4,6 @@ using JetBrains.Annotations;
 using Vostok.Hercules.Client.Abstractions.Models;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
 using Vostok.Metrics.Models;
-using Vostok.Metrics.Primitives.Timer;
 
 namespace Vostok.Metrics.Aggregations.MetricAggregator
 {
