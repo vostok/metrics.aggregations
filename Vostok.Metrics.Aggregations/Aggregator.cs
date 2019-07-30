@@ -209,7 +209,7 @@ namespace Vostok.Metrics.Aggregations
                 {
                     var insertQuery = new InsertEventsQuery(
                         settings.TargetStreamName,
-                        events.Take(settings.EventsSendBatchSize).ToList());
+                        events.Take(settings.EventsWriteBatchSize).ToList());
 
                     var insertResult = await settings.GateClient
                         .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
@@ -217,7 +217,7 @@ namespace Vostok.Metrics.Aggregations
 
                     insertResult.EnsureSuccess();
 
-                    events = events.Skip(settings.EventsSendBatchSize).ToList();
+                    events = events.Skip(settings.EventsWriteBatchSize).ToList();
 
                     break;
                 }
