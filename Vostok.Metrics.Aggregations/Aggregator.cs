@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -218,8 +219,6 @@ namespace Vostok.Metrics.Aggregations
                     insertResult.EnsureSuccess();
 
                     events = events.Skip(settings.EventsWriteBatchSize).ToList();
-
-                    break;
                 }
                 catch (Exception e)
                 {
