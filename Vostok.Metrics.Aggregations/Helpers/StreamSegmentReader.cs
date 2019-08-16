@@ -106,7 +106,20 @@ namespace Vostok.Metrics.Aggregations.Helpers
             CancellationToken cancellationToken)
         {
             var (_, result) = await streamReader.ReadAsync(coordinates, shardingSettings, 1, cancellationToken).ConfigureAwait(false);
-            return result.Payload.Next;
+
+            var map = result.Payload.Next.ToDictionary();
+
+            foreach (var position in coordinates.Positions)
+            {
+                if (map.ContainsKey(position.Partition))
+                    map[position.Partition] = new StreamPosition
+                    {
+                        Partition = position.Partition,
+                        Offset = position.Offset
+                    };
+            }
+
+            return new StreamCoordinates(map.Values.ToArray());
         }
     }
 }
