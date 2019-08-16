@@ -105,7 +105,7 @@ namespace Vostok.Metrics.Aggregations.Helpers
             StreamShardingSettings shardingSettings,
             CancellationToken cancellationToken)
         {
-            var (_, result) = await streamReader.ReadAsync(coordinates, shardingSettings, 0, cancellationToken).ConfigureAwait(false);
+            var (_, result) = await streamReader.ReadAsync(coordinates, shardingSettings, 1, cancellationToken).ConfigureAwait(false);
             return result.Payload.Next;
         }
     }
