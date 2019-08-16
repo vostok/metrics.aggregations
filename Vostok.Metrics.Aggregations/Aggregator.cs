@@ -203,14 +203,15 @@ namespace Vostok.Metrics.Aggregations
         private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
         {
             var events = result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList();
+            var pointer = 0;
 
-            while (events.Any())
+            while (pointer < events.Count)
             {
                 try
                 {
                     var insertQuery = new InsertEventsQuery(
                         settings.TargetStreamName,
-                        events.Take(settings.EventsWriteBatchSize).ToList());
+                        events.Skip(pointer).Take(settings.EventsWriteBatchSize).ToList());
 
                     var insertResult = await settings.GateClient
                         .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
@@ -218,7 +219,7 @@ namespace Vostok.Metrics.Aggregations
 
                     insertResult.EnsureSuccess();
 
-                    events = events.Skip(settings.EventsWriteBatchSize).ToList();
+                    pointer += settings.EventsWriteBatchSize;
                 }
                 catch (Exception e)
                 {
