@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Vostok.Commons.Helpers.Extensions;
 using Vostok.Hercules.Client.Abstractions.Models;
-using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Logging.Abstractions;
 using Vostok.Metrics.Aggregations.Helpers;
@@ -27,6 +25,7 @@ namespace Vostok.Metrics.Aggregations
         private readonly ILog log;
         private readonly Dictionary<MetricTags, OneMetricAggregator> aggregators;
         private readonly StreamReader<MetricEvent> streamReader;
+        private readonly StreamWriter streamWriter;
 
         private readonly IMetricGroup1<IIntegerGauge> eventsMetric;
         private readonly IMetricGroup1<IIntegerGauge> stateMetric;
@@ -51,7 +50,17 @@ namespace Vostok.Metrics.Aggregations
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
+            var streamWriterSettings = new StreamWriterSettings(
+                settings.TargetStreamName,
+                settings.GateClient)
+            {
+                DelayOnError = settings.DelayOnError,
+                EventsWriteBatchSize = settings.EventsWriteBatchSize,
+                EventsWriteTimeout = settings.EventsWriteTimeout
+            };
+
             streamReader = new StreamReader<MetricEvent>(streamReaderSettings, log);
+            streamWriter = new StreamWriter(streamWriterSettings, log);
             aggregators = new Dictionary<MetricTags, OneMetricAggregator>();
 
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
@@ -188,7 +197,7 @@ namespace Vostok.Metrics.Aggregations
 
             if (result.AggregatedEvents.Any())
             {
-                await SendAggregatedEvents(result, cancellationToken).ConfigureAwait(false);
+                await streamWriter.WriteEvents(result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList(), cancellationToken).ConfigureAwait(false);
                 await SaveProgress().ConfigureAwait(false);
             }
 
@@ -197,35 +206,6 @@ namespace Vostok.Metrics.Aggregations
             if (readResult.Payload.Events.Count == 0)
             {
                 await Task.Delay(settings.DelayOnNoEvents, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        private async Task SendAggregatedEvents(AggregateResult result, CancellationToken cancellationToken)
-        {
-            var events = result.AggregatedEvents.Select(HerculesEventMetricBuilder.Build).ToList();
-            var pointer = 0;
-
-            while (pointer < events.Count)
-            {
-                try
-                {
-                    var insertQuery = new InsertEventsQuery(
-                        settings.TargetStreamName,
-                        events.Skip(pointer).Take(settings.EventsWriteBatchSize).ToList());
-
-                    var insertResult = await settings.GateClient
-                        .InsertAsync(insertQuery, settings.EventsWriteTimeout, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    insertResult.EnsureSuccess();
-
-                    pointer += settings.EventsWriteBatchSize;
-                }
-                catch (Exception e)
-                {
-                    log.Error(e, "Failed to send aggregated events.");
-                    await Task.Delay(settings.DelayOnError, cancellationToken).ConfigureAwait(false);
-                }
             }
         }
 
