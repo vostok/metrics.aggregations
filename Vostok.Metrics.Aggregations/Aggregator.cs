@@ -114,12 +114,13 @@ namespace Vostok.Metrics.Aggregations
 
         private async Task Restart(CancellationToken cancellationToken)
         {
-            leftCoordinates = await settings.LeftCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
-            rightCoordinates = await settings.RightCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
+            leftCoordinates = await streamReader.SeekToEndAsync(shardingSettings).ConfigureAwait(false);
+            rightCoordinates = leftCoordinates;
 
             aggregators.Clear();
 
             log.Info("Updated coordinates from storage: left: {LeftCoordinates}, right: {RightCoordinates}.", leftCoordinates, rightCoordinates);
+            return;
 
             var segmentReaderSettings = new StreamSegmentReaderSettings<MetricEvent>(
                 settings.SourceStreamName,
