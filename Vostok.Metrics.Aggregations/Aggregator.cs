@@ -47,7 +47,9 @@ namespace Vostok.Metrics.Aggregations
                 settings.StreamClient)
             {
                 EventsBatchSize = settings.EventsReadBatchSize,
-                EventsReadTimeout = settings.EventsReadTimeout
+                EventsReadTimeout = settings.EventsReadTimeout,
+                EventsReadAttempts = settings.EventsReadAttempts,
+                DelayOnError = settings.DelayOnError
             };
 
             var streamWriterSettings = new StreamWriterSettings(
@@ -114,6 +116,8 @@ namespace Vostok.Metrics.Aggregations
 
         private async Task Restart(CancellationToken cancellationToken)
         {
+            log.Info("Restarting aggregation.");
+
             leftCoordinates = await settings.LeftCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
             rightCoordinates = await settings.RightCoordinatesStorage.GetCurrentAsync().ConfigureAwait(false);
 
@@ -127,7 +131,7 @@ namespace Vostok.Metrics.Aggregations
                 leftCoordinates,
                 rightCoordinates)
             {
-                EventsBatchSize = settings.EventsReadBatchSize,
+                EventsReadBatchSize = settings.EventsReadBatchSize,
                 EventsReadTimeout = settings.EventsReadTimeout
             };
 
