@@ -78,7 +78,7 @@ namespace Vostok.Metrics.Aggregations.Tests.Helpers
                 segment.Start,
                 segment.End)
             {
-                EventsBatchSize = 133,
+                EventsReadBatchSize = 133,
                 EventsReadTimeout = timeout
             };
 
