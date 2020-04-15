@@ -13,7 +13,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
         private MetricEvent lastEvent;
         private Dictionary<HistogramBucket, double> buckets = new Dictionary<HistogramBucket, double>();
 
-        public static double? GetQuantile(List<KeyValuePair<HistogramBucket, double>> sortedBuckets, double quantile)
+        public static double GetQuantile(List<KeyValuePair<HistogramBucket, double>> sortedBuckets, double quantile)
         {
             var totalCount = sortedBuckets.Sum(x => x.Value);
             var skip = quantile * totalCount;
@@ -68,10 +68,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
             for (var i = 0; i < quantiles.Length; i++)
             {
                 var value = GetQuantile(sortedBuckets, quantiles[i]);
-                if (value != null)
-                {
-                    result.Add(new MetricEvent(value.Value, quantileTags[i], timestamp, lastEvent.Unit, null, null));
-                }
+                result.Add(new MetricEvent(value, quantileTags[i], timestamp, lastEvent.Unit, null, null));
             }
 
             var totalCount = sortedBuckets.Sum(x => x.Value);

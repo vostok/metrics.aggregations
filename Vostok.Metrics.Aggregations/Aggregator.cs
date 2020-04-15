@@ -67,7 +67,7 @@ namespace Vostok.Metrics.Aggregations
 
             eventsMetric = settings.MetricContext.CreateIntegerGauge("events", "type", new IntegerGaugeConfig {ResetOnScrape = true});
             stateMetric = settings.MetricContext.CreateIntegerGauge("state", "type");
-            settings.MetricContext.CreateFuncGauge("events", "type").For("remaining").SetValueProvider(CountStreamRemainingEvents);
+            settings.MetricContext.CreateFuncGauge("events", "type").For("remaining").SetValueProvider(() => CountStreamRemainingEvents());
             iterationMetric = settings.MetricContext.CreateSummary("iteration", "type", new SummaryConfig {Quantiles = new[] {0.5, 0.75, 1}});
         }
 
@@ -251,7 +251,7 @@ namespace Vostok.Metrics.Aggregations
             stateMetric.For("events").Set(result.ActiveEventsCount);
         }
 
-        private double CountStreamRemainingEvents()
+        private double? CountStreamRemainingEvents()
         {
             var remaining = streamReader.CountStreamRemainingEventsAsync(rightCoordinates, shardingSettings).GetAwaiter().GetResult();
             log.Info("Global aggregator progress: stream remaining events: {EventsRemaining}.", remaining);
