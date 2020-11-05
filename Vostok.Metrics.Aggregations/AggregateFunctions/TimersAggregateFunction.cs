@@ -13,7 +13,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
         private MetricEvent lastEvent;
         private List<double> values = new List<double>();
 
-        public void AddEvent(MetricEvent @event)
+        public void Add(MetricEvent @event)
         {
             lastEvent = @event;
             values.Add(@event.Value);

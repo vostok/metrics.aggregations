@@ -13,7 +13,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
         private MetricEvent lastEvent;
         private Dictionary<HistogramBucket, double> buckets = new Dictionary<HistogramBucket, double>();
 
-        public void AddEvent(MetricEvent @event)
+        public void Add(MetricEvent @event)
         {
             lastEvent = @event;
 

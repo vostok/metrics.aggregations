@@ -29,8 +29,8 @@ namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
                 .Append("project", "metrics-aggregators")
                 .Append(WellKnownTagKeys.Name, "magic");
 
-            function.AddEvent(new MetricEvent(3, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
-            function.AddEvent(new MetricEvent(100, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
+            function.Add(new MetricEvent(3, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
+            function.Add(new MetricEvent(100, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
 
             function.Aggregate(timestamp + 1.Minutes())
                 .Should()
