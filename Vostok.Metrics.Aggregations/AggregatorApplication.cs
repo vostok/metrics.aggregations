@@ -47,7 +47,7 @@ namespace Vostok.Metrics.Aggregations
             var consumerSettings = new WindowedStreamConsumerSettings<MetricEvent, MetricTags>(
                 settings.SourceStream,
                 apiKeyProvider,
-                environment.HostExtensions.Get<IClusterProvider>(Constants.StreamApiClusterProviderKey),
+                environment.HostExtensions.Get<IClusterProvider>(Constants.StreamClientClusterProviderKey),
                 s => s.Tags,
                 s => s.Timestamp,
                 _ => new AggregatorWindow(environment.HostExtensions.Get<Func<IAggregateFunction>>(Constants.AggregateFunctionKey)(), eventsWriter),
