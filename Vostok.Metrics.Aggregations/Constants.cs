@@ -9,6 +9,8 @@
         public const string StreamApiClusterProviderKey = "streamApiClusterProvider";
 
         public const string GateClientAdditionalSetupKey = "gateClientAdditionalSetupKey";
-        public const string StreamApiClientAdditionalSetupKey = "streamApiClientAdditionalSetupKey";
+        public const string StreamClientAdditionalSetupKey = "streamClientAdditionalSetupKey";
+
+        public const string AggregateFunctionKey = "aggregateFunctionKey";
     }
 }

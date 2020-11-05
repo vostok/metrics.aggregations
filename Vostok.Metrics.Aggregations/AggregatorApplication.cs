@@ -17,13 +17,9 @@ namespace Vostok.Metrics.Aggregations
     [RequiresSecretConfiguration(typeof(AggregatorSecretSettings))]
     public class AggregatorApplication : IVostokApplication
     {
-        private readonly Func<IAggregateFunction> aggregateFunction;
         private WindowedStreamConsumer<MetricEvent, MetricTags> consumer;
         private Task writeTask;
-
-        public AggregatorApplication(Func<IAggregateFunction> aggregateFunction) =>
-            this.aggregateFunction = aggregateFunction;
-
+        
         public Task InitializeAsync(IVostokHostingEnvironment environment)
         {
             SetupEventsLimitMetric(environment, () => environment.ConfigurationProvider.Get<AggregatorSettings>().EventsLimitMetric);
@@ -54,7 +50,7 @@ namespace Vostok.Metrics.Aggregations
                 environment.HostExtensions.Get<IClusterProvider>(Constants.StreamApiClusterProviderKey),
                 s => s.Tags,
                 s => s.Timestamp,
-                _ => new AggregatorWindow(aggregateFunction(), eventsWriter),
+                _ => new AggregatorWindow(environment.HostExtensions.Get<Func<IAggregateFunction>>(Constants.AggregateFunctionKey)(), eventsWriter),
                 r => new HerculesMetricEventReader(r),
                 environment.HostExtensions.Get<IStreamCoordinatesStorage>(Constants.LeftCoordinatesStorageKey),
                 environment.HostExtensions.Get<IStreamCoordinatesStorage>(Constants.RightCoordinatesStorageKey),
@@ -67,7 +63,7 @@ namespace Vostok.Metrics.Aggregations
                 LagProvider = e => e.AggregationParameters?.GetAggregationLag(),
                 PeriodProvider = e => e.AggregationParameters?.GetAggregationPeriod(),
                 MetricContext = environment.Metrics.Instance,
-                StreamApiClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.StreamApiClientAdditionalSetupKey),
+                StreamApiClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.StreamClientAdditionalSetupKey),
                 MaximumDeltaAfterNow = settings.MaximumDeltaAfterNow,
                 OnBatchBegin = _ => writeTask?.GetAwaiter().GetResult(),
                 OnBatchEnd = _ =>
