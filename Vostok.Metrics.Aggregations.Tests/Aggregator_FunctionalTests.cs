@@ -273,7 +273,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                     .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetApplication("Test"))
                     .SetupShutdownToken(cancellationToken);
 
-                var aggregator = new AggregatorApplication(aggregateFunction);
+                var aggregator = new AggregatorApplication();
 
                 var host = new VostokHost(
                     new VostokHostSettings(
