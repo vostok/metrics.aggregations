@@ -12,7 +12,7 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
         private MetricEvent lastEvent;
         private double count;
 
-        public void AddEvent(MetricEvent @event)
+        public void Add(MetricEvent @event)
         {
             lastEvent = @event;
             count += @event.Value;

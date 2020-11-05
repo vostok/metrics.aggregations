@@ -41,7 +41,7 @@ namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
 
                 aggregationParameters.SetQuantiles(new[] {0.1, 0.5, 0.75});
 
-                function.AddEvent(new MetricEvent(i, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
+                function.Add(new MetricEvent(i, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
             }
 
             //[-Inf..1]=18, [1..2]=12, [2..Inf]=15

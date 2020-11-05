@@ -18,7 +18,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         {
             private List<MetricEvent> events = new List<MetricEvent>();
 
-            public void AddEvent(MetricEvent @event)
+            public void Add(MetricEvent @event)
             {
                 events.Add(@event);
             }
@@ -31,7 +31,7 @@ namespace Vostok.Metrics.Aggregations.Tests
         {
             private List<MetricEvent> events = new List<MetricEvent>();
 
-            public void AddEvent(MetricEvent @event)
+            public void Add(MetricEvent @event)
             {
                 events.Add(@event);
             }

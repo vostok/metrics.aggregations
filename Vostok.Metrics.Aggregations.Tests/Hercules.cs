@@ -5,7 +5,7 @@ using Vostok.Hercules.Client;
 using Vostok.Hercules.Local;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
-using Vostok.Metrics.Hercules.EventBuilder;
+using Vostok.Metrics.Hercules.Readers;
 using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations.Tests
@@ -35,7 +35,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             var metricsStreamSettings = new HerculesStreamClientSettings<MetricEvent>(
                 cluster.HerculesStreamApiTopology,
                 GetApiKey,
-                buffer => new MetricEventBuilder(buffer));
+                buffer => new HerculesMetricEventReader(buffer));
 
             var gateSettings = new HerculesGateClientSettings(
                 cluster.HerculesGateTopology,

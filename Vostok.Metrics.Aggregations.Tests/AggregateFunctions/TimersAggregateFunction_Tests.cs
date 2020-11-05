@@ -30,7 +30,7 @@ namespace Vostok.Metrics.Aggregations.Tests.AggregateFunctions
                 .Append(WellKnownTagKeys.Name, "magic");
 
             for (var value = 0; value < 10; value++)
-                function.AddEvent(new MetricEvent(value, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
+                function.Add(new MetricEvent(value, tags, timestamp, "unicorns", WellKnownAggregationTypes.Counter, aggregationParameters));
 
             function.Aggregate(timestamp + 1.Minutes())
                 .Should()

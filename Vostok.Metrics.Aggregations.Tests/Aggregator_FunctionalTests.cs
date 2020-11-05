@@ -9,6 +9,8 @@ using FluentAssertions.Extensions;
 using NUnit.Framework;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
+using Vostok.Hosting;
+using Vostok.Hosting.Setup;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
@@ -46,7 +48,7 @@ namespace Vostok.Metrics.Aggregations.Tests
 
         private TestsHelpers.TestMetricSender testMetricSender;
         // ReSharper disable once CollectionNeverQueried.Local
-        private List<Aggregator> aggregators;
+        private List<AggregatorApplication> aggregators;
 
         [SetUp]
         public void SetUp()
@@ -94,7 +96,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                     ErrorCallback = error => log.Error(error)
                 });
 
-            aggregators = new List<Aggregator>();
+            aggregators = new List<AggregatorApplication>();
         }
 
         [TearDown]
@@ -250,26 +252,35 @@ namespace Vostok.Metrics.Aggregations.Tests
         private void RunAggregators(
             string sourceStreamName,
             string targetStreamName,
-            Func<IAggregateFunction> aggregateFunctionFactory,
+            Func<IAggregateFunction> aggregateFunction,
             CancellationToken cancellationToken)
         {
             for (var i = 0; i < aggregatorsCount; i++)
             {
                 var index = i;
-                var aggregatorSettings = new AggregatorSettings(
-                    sourceStreamName,
-                    targetStreamName,
-                    aggregateFunctionFactory,
-                    Hercules.Instance.MetricsStream,
-                    Hercules.Instance.Gate,
-                    leftCoordinatesStorage,
-                    rightCoordinatesStorage,
-                    () => new StreamShardingSettings(index, aggregatorsCount),
-                    new DevNullMetricContext());
+                //var aggregatorSettings = new AggregatorSettings(
+                //    sourceStreamName,
+                //    targetStreamName,
+                //    aggregateFunction,
+                //    Hercules.Instance.MetricsStream,
+                //    Hercules.Instance.Gate,
+                //    leftCoordinatesStorage,
+                //    rightCoordinatesStorage,
+                //    () => new StreamShardingSettings(index, aggregatorsCount),
+                //    new DevNullMetricContext());
 
-                var aggregator = new Aggregator(aggregatorSettings, log.ForContext($"Aggregator-{aggregators.Count}"));
+                VostokHostingEnvironmentSetup setup = builder => builder
+                    .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetApplication("Test"))
+                    .SetupShutdownToken(cancellationToken);
 
-                aggregator.RunAsync(cancellationToken);
+                var aggregator = new AggregatorApplication(aggregateFunction);
+
+                var host = new VostokHost(
+                    new VostokHostSettings(
+                        aggregator,
+                        setup));
+
+                host.RunAsync();
 
                 aggregators.Add(aggregator);
             }
