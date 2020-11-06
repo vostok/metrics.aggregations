@@ -262,6 +262,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             for (var i = 0; i < aggregatorsCount; i++)
             {
                 var index = i;
+                var logPrefix = $"Instance-{index}";
                 //var aggregatorSettings = new AggregatorSettings(
                 //    sourceStream,
                 //    targetStream,
@@ -280,9 +281,9 @@ namespace Vostok.Metrics.Aggregations.Tests
                     streamClient.ClusterProvider = Hercules.Instance.Cluster.HerculesStreamApiTopology;
 
                 VostokHostingEnvironmentSetup setup = builder => builder
-                    .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetEnvironment("dev").SetApplication("Test"))
+                    .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetEnvironment("dev").SetApplication("Test").SetInstance(logPrefix))
                     .SetupShutdownToken(cancellationToken)
-                    .SetupLog(l => l.SetupConsoleLog())
+                    .SetupLog(l => l.SetupConsoleLog().CustomizeLog(ll => ll.ForContext(logPrefix)))
                     .SetupConfiguration(
                         configurationBuilder =>
                             configurationBuilder
