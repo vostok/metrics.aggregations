@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Vostok.Commons.Time;
 using Vostok.Configuration.Abstractions.Attributes;
 
-namespace Vostok.Metrics.Aggregations
+namespace Vostok.Metrics.Aggregations.Configuration
 {
     [PublicAPI]
     public class AggregatorSettings

@@ -7,6 +7,8 @@ using Vostok.Hercules.Consumers;
 using Vostok.Hosting.Abstractions;
 using Vostok.Hosting.Abstractions.Requirements;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
+using Vostok.Metrics.Aggregations.Configuration;
+using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Hercules.Readers;
 using Vostok.Metrics.Models;
 using Vostok.Metrics.Primitives.Gauge;
@@ -29,10 +31,10 @@ namespace Vostok.Metrics.Aggregations
 
             var binaryWriterSettings = new StreamBinaryWriterSettings(
                 apiKeyProvider,
-                environment.HostExtensions.Get<IClusterProvider>(Constants.GateClusterProviderKey))
+                new AdHocClusterProvider(() => null))
             {
                 MetricContext = environment.Metrics.Instance,
-                GateClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.GateClientAdditionalSetupKey)
+                GateClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.GateClientSetupKey)
             };
 
             var binaryWriter = new StreamBinaryWriter(binaryWriterSettings, environment.Log);
@@ -47,10 +49,10 @@ namespace Vostok.Metrics.Aggregations
             var consumerSettings = new WindowedStreamConsumerSettings<MetricEvent, MetricTags>(
                 settings.SourceStream,
                 apiKeyProvider,
-                environment.HostExtensions.Get<IClusterProvider>(Constants.StreamClientClusterProviderKey),
+                new AdHocClusterProvider(() => null),
                 s => s.Tags,
                 s => s.Timestamp,
-                _ => new AggregatorWindow(environment.HostExtensions.Get<Func<IAggregateFunction>>(Constants.AggregateFunctionKey)(), eventsWriter),
+                _ => new MetricProcessor(environment.HostExtensions.Get<Func<IAggregateFunction>>(Constants.AggregateFunctionKey)(), eventsWriter),
                 r => new HerculesMetricEventReader(r),
                 environment.HostExtensions.Get<IStreamCoordinatesStorage>(Constants.LeftCoordinatesStorageKey),
                 environment.HostExtensions.Get<IStreamCoordinatesStorage>(Constants.RightCoordinatesStorageKey),
@@ -63,7 +65,7 @@ namespace Vostok.Metrics.Aggregations
                 LagProvider = e => e.AggregationParameters?.GetAggregationLag(),
                 PeriodProvider = e => e.AggregationParameters?.GetAggregationPeriod(),
                 MetricContext = environment.Metrics.Instance,
-                StreamApiClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.StreamClientAdditionalSetupKey),
+                StreamApiClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.StreamClientSetupKey),
                 MaximumDeltaAfterNow = settings.MaximumDeltaAfterNow,
                 OnBatchBegin = _ => writeTask?.GetAwaiter().GetResult(),
                 OnBatchEnd = _ =>
