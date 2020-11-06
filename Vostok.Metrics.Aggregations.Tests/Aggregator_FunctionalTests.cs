@@ -298,8 +298,8 @@ namespace Vostok.Metrics.Aggregations.Tests
                                         })))
                     .SetupHostExtensions((extensions, environment) => extensions
                         .Add(Constants.AggregateFunctionKey, aggregateFunction)
-                        .Add(Constants.LeftCoordinatesStorageKey, leftCoordinatesStorage)
-                        .Add(Constants.RightCoordinatesStorageKey, rightCoordinatesStorage)
+                        .Add<IStreamCoordinatesStorage>(Constants.LeftCoordinatesStorageKey, leftCoordinatesStorage)
+                        .Add<IStreamCoordinatesStorage>(Constants.RightCoordinatesStorageKey, rightCoordinatesStorage)
                         .Add(Constants.GateClientSetupKey, gateSetup)
                         .Add(Constants.StreamClientSetupKey, streamClientSetup));
 
