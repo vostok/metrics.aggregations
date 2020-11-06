@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using NUnit.Framework;
+using Vostok.Clusterclient.Core;
+using Vostok.Configuration.Sources.Object;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Hosting;
@@ -14,6 +16,8 @@ using Vostok.Hosting.Setup;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
 using Vostok.Metrics.Aggregations.AggregateFunctions;
+using Vostok.Metrics.Aggregations.Configuration;
+using Vostok.Metrics.Aggregations.Helpers;
 using Vostok.Metrics.Hercules;
 using Vostok.Metrics.Models;
 using Vostok.Metrics.Primitives.Timer;
@@ -250,8 +254,8 @@ namespace Vostok.Metrics.Aggregations.Tests
         }
 
         private void RunAggregators(
-            string sourceStreamName,
-            string targetStreamName,
+            string sourceStream,
+            string targetStream,
             Func<IAggregateFunction> aggregateFunction,
             CancellationToken cancellationToken)
         {
@@ -259,8 +263,8 @@ namespace Vostok.Metrics.Aggregations.Tests
             {
                 var index = i;
                 //var aggregatorSettings = new AggregatorSettings(
-                //    sourceStreamName,
-                //    targetStreamName,
+                //    sourceStream,
+                //    targetStream,
                 //    aggregateFunction,
                 //    Hercules.Instance.MetricsStream,
                 //    Hercules.Instance.Gate,
@@ -269,9 +273,34 @@ namespace Vostok.Metrics.Aggregations.Tests
                 //    () => new StreamShardingSettings(index, aggregatorsCount),
                 //    new DevNullMetricContext());
 
+                ClusterClientSetup gateSetup = gate =>
+                    gate.ClusterProvider = Hercules.Instance.Cluster.HerculesGateTopology;
+
+                ClusterClientSetup streamClientSetup = streamClient =>
+                    streamClient.ClusterProvider = Hercules.Instance.Cluster.HerculesStreamApiTopology;
+
                 VostokHostingEnvironmentSetup setup = builder => builder
-                    .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetApplication("Test"))
-                    .SetupShutdownToken(cancellationToken);
+                    .SetupApplicationIdentity(identity => identity.SetProject("Vostok").SetSubproject("Metrics").SetEnvironment("dev").SetApplication("Test"))
+                    .SetupShutdownToken(cancellationToken)
+                    .SetupLog(l => l.SetupConsoleLog())
+                    .SetupConfiguration(
+                        configurationBuilder =>
+                            configurationBuilder
+                                .AddSecretSource(
+                                    new ObjectSource(new AggregatorSecretSettings {HerculesApiKey = "key"}))
+                                .AddSource(
+                                    new ObjectSource(
+                                        new AggregatorSettings
+                                        {
+                                            SourceStream = sourceStream,
+                                            TargetStream = targetStream
+                                        })))
+                    .SetupHostExtensions((extensions, environment) => extensions
+                        .Add(Constants.AggregateFunctionKey, aggregateFunction)
+                        .Add(Constants.LeftCoordinatesStorageKey, leftCoordinatesStorage)
+                        .Add(Constants.RightCoordinatesStorageKey, rightCoordinatesStorage)
+                        .Add(Constants.GateClientSetupKey, gateSetup)
+                        .Add(Constants.StreamClientSetupKey, streamClientSetup));
 
                 var aggregator = new AggregatorApplication();
 

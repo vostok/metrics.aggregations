@@ -14,35 +14,35 @@ namespace Vostok.Metrics.Aggregations.Tests
     {
         // ReSharper disable once InconsistentNaming
         private static readonly Lazy<Hercules> instance = new Lazy<Hercules>(() => new Hercules());
-        private readonly HerculesCluster cluster;
+        public readonly HerculesCluster Cluster;
 
         private Hercules()
         {
             var log = new SynchronousConsoleLog();
 
-            cluster = HerculesCluster.DeployNew(TestContext.CurrentContext.TestDirectory, log.WithMinimumLevel(LogLevel.Warn));
+            Cluster = HerculesCluster.DeployNew(TestContext.CurrentContext.TestDirectory, log.WithMinimumLevel(LogLevel.Warn));
 
-            string GetApiKey() => cluster.ApiKey;
+            string GetApiKey() => Cluster.ApiKey;
 
             var managementSettings = new HerculesManagementClientSettings(
-                cluster.HerculesManagementApiTopology,
+                Cluster.HerculesManagementApiTopology,
                 GetApiKey);
 
             var streamSettings = new HerculesStreamClientSettings(
-                cluster.HerculesStreamApiTopology,
+                Cluster.HerculesStreamApiTopology,
                 GetApiKey);
 
             var metricsStreamSettings = new HerculesStreamClientSettings<MetricEvent>(
-                cluster.HerculesStreamApiTopology,
+                Cluster.HerculesStreamApiTopology,
                 GetApiKey,
                 buffer => new HerculesMetricEventReader(buffer));
 
             var gateSettings = new HerculesGateClientSettings(
-                cluster.HerculesGateTopology,
+                Cluster.HerculesGateTopology,
                 GetApiKey);
 
             var sinkSettings = new HerculesSinkSettings(
-                cluster.HerculesGateTopology,
+                Cluster.HerculesGateTopology,
                 GetApiKey)
             {
                 SendPeriod = 1.Seconds()
@@ -68,7 +68,7 @@ namespace Vostok.Metrics.Aggregations.Tests
             if (instance.IsValueCreated)
             {
                 Instance.Sink?.Dispose();
-                Instance.cluster?.Dispose();
+                Instance.Cluster?.Dispose();
             }
         }
 
