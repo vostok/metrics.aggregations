@@ -12,6 +12,7 @@ using Vostok.Configuration.Sources.Object;
 using Vostok.Hercules.Client.Abstractions.Queries;
 using Vostok.Hercules.Consumers;
 using Vostok.Hosting;
+using Vostok.Hosting.Models;
 using Vostok.Hosting.Setup;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
@@ -263,16 +264,6 @@ namespace Vostok.Metrics.Aggregations.Tests
             {
                 var index = i;
                 var logPrefix = $"Instance-{index}";
-                //var aggregatorSettings = new AggregatorSettings(
-                //    sourceStream,
-                //    targetStream,
-                //    aggregateFunction,
-                //    Hercules.Instance.MetricsStream,
-                //    Hercules.Instance.Gate,
-                //    leftCoordinatesStorage,
-                //    rightCoordinatesStorage,
-                //    () => new StreamShardingSettings(index, aggregatorsCount),
-                //    new DevNullMetricContext());
 
                 ClusterClientSetup gateSetup = gate =>
                     gate.ClusterProvider = Hercules.Instance.Cluster.HerculesGateTopology;
@@ -296,12 +287,16 @@ namespace Vostok.Metrics.Aggregations.Tests
                                             SourceStream = sourceStream,
                                             TargetStream = targetStream
                                         })))
-                    .SetupHostExtensions((extensions, environment) => extensions
-                        .Add(Constants.AggregateFunctionKey, aggregateFunction)
-                        .Add<IStreamCoordinatesStorage>(Constants.LeftCoordinatesStorageKey, leftCoordinatesStorage)
-                        .Add<IStreamCoordinatesStorage>(Constants.RightCoordinatesStorageKey, rightCoordinatesStorage)
-                        .Add(Constants.GateClientSetupKey, gateSetup)
-                        .Add(Constants.StreamClientSetupKey, streamClientSetup));
+                    .SetupHostExtensions(
+                        (extensions, environment) => extensions
+                            .Add(Constants.AggregateFunctionKey, aggregateFunction)
+                            .Add<IStreamCoordinatesStorage>(Constants.LeftCoordinatesStorageKey, leftCoordinatesStorage)
+                            .Add<IStreamCoordinatesStorage>(Constants.RightCoordinatesStorageKey, rightCoordinatesStorage)
+                            .Add(Constants.GateClientSetupKey, gateSetup)
+                            .Add(Constants.StreamClientSetupKey, streamClientSetup))
+                    .SetupApplicationReplicationInfo(
+                        replication => replication
+                            .SetReplicationInfo(new VostokApplicationReplicationInfo(index, aggregatorsCount)));
 
                 var aggregator = new AggregatorApplication();
 
