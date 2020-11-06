@@ -288,7 +288,7 @@ namespace Vostok.Metrics.Aggregations.Tests
                         configurationBuilder =>
                             configurationBuilder
                                 .AddSecretSource(
-                                    new ObjectSource(new AggregatorSecretSettings {HerculesApiKey = "key"}))
+                                    new ObjectSource(new AggregatorSecretSettings {HerculesApiKey = Hercules.Instance.Cluster.ApiKey}))
                                 .AddSource(
                                     new ObjectSource(
                                         new AggregatorSettings
