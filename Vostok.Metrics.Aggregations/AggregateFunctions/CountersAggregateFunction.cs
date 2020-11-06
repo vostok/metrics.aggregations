@@ -9,6 +9,8 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     [PublicAPI]
     public class CountersAggregateFunction : IAggregateFunction
     {
+        public const string Name = "Counters";
+
         private MetricEvent lastEvent;
         private double count;
 

@@ -10,6 +10,8 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     [PublicAPI]
     public class TimersAggregateFunction : IAggregateFunction
     {
+        public const string Name = "Timers";
+
         private MetricEvent lastEvent;
         private List<double> values = new List<double>();
 

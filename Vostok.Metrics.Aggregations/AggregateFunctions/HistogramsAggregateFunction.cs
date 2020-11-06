@@ -10,6 +10,8 @@ namespace Vostok.Metrics.Aggregations.AggregateFunctions
     [PublicAPI]
     public class HistogramsAggregateFunction : IAggregateFunction
     {
+        public const string Name = "Histograms";
+        
         private MetricEvent lastEvent;
         private Dictionary<HistogramBucket, double> buckets = new Dictionary<HistogramBucket, double>();
 
