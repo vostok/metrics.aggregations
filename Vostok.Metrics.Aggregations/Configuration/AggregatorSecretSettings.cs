@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 
-namespace Vostok.Metrics.Aggregations
+namespace Vostok.Metrics.Aggregations.Configuration
 {
     [PublicAPI]
     public class AggregatorSecretSettings

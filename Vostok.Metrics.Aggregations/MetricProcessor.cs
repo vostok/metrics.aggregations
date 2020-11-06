@@ -6,12 +6,12 @@ using Vostok.Metrics.Models;
 
 namespace Vostok.Metrics.Aggregations
 {
-    internal class AggregatorWindow : WindowedStreamConsumerSettings<MetricEvent, MetricTags>.IWindow
+    internal class MetricProcessor : WindowedStreamConsumerSettings<MetricEvent, MetricTags>.IWindow
     {
         private readonly IAggregateFunction aggregateFunction;
         private readonly StreamBinaryEventsWriter writer;
 
-        public AggregatorWindow(IAggregateFunction aggregateFunction, StreamBinaryEventsWriter writer)
+        public MetricProcessor(IAggregateFunction aggregateFunction, StreamBinaryEventsWriter writer)
         {
             this.aggregateFunction = aggregateFunction;
             this.writer = writer;
