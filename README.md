@@ -1,6 +1,6 @@
 # Vostok.Metrics.Aggregations
 
-[![Build status](https://ci.appveyor.com/api/projects/status/github/vostok/metrics.aggregations?svg=true&branch=master)](https://ci.appveyor.com/project/vostok/metrics.aggregations/branch/master)
+[![Build & Test & Publish](https://github.com/vostok/metrics.aggregations/actions/workflows/ci.yml/badge.svg)](https://github.com/vostok/metrics.aggregations/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/Vostok.Metrics.Aggregations.svg)](https://www.nuget.org/packages/Vostok.Metrics.Aggregations)
 
 Library for metrics aggregations using hercules pipeline.
