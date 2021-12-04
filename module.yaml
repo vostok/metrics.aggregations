@@ -29,6 +29,8 @@ notests *default:
 
 full-build > notests:
   deps:
+    - -vostok.devtools
+    - vostok.devtools@with-net6.0
     - vostok.hosting
     - vostok.zookeeper.client
     - vostok.tracing.hercules
