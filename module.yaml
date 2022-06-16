@@ -6,7 +6,7 @@ notests *default:
       name: dotnet
 
   install:
-    - Vostok.Metrics.Aggregations/bin/Release/netcoreapp3.1/Vostok.Metrics.Aggregations.dll
+    - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
 
   deps:
     - vostok.hosting.abstractions
@@ -23,14 +23,12 @@ notests *default:
     - vostok.hercules.client.abstractions
     - vostok.hercules.consumers
     - vostok.metrics
-    - vostok.devtools
+    - vostok.devtools@with-net6.0
     - vostok.commons.time/src
     - vostok.commons.helpers/src
 
 full-build > notests:
   deps:
-    - -vostok.devtools
-    - vostok.devtools@with-net6.0
     - vostok.hosting
     - vostok.zookeeper.client
     - vostok.tracing.hercules
