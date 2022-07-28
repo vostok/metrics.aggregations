@@ -1,0 +1,50 @@
+const Vostok.Metrics.Aggregations.AggregateFunctions.CountersAggregateFunction.Name = "Counters" -> string
+const Vostok.Metrics.Aggregations.AggregateFunctions.HistogramsAggregateFunction.Name = "Histograms" -> string
+const Vostok.Metrics.Aggregations.AggregateFunctions.TimersAggregateFunction.Name = "Timers" -> string
+const Vostok.Metrics.Aggregations.Helpers.Constants.AggregateFunctionKey = "aggregateFunctionKey" -> string
+const Vostok.Metrics.Aggregations.Helpers.Constants.GateClientSetupKey = "gateClientSetupKey" -> string
+const Vostok.Metrics.Aggregations.Helpers.Constants.LeftCoordinatesStorageKey = "leftCoordinatesStorage" -> string
+const Vostok.Metrics.Aggregations.Helpers.Constants.RightCoordinatesStorageKey = "rightCoordinatesStorage" -> string
+const Vostok.Metrics.Aggregations.Helpers.Constants.StreamClientSetupKey = "streamClientSetupKey" -> string
+Vostok.Metrics.Aggregations.AggregateFunctions.CountersAggregateFunction
+Vostok.Metrics.Aggregations.AggregateFunctions.CountersAggregateFunction.Add(Vostok.Metrics.Models.MetricEvent event) -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.CountersAggregateFunction.Aggregate(System.DateTimeOffset timestamp) -> System.Collections.Generic.IEnumerable<Vostok.Metrics.Models.MetricEvent>
+Vostok.Metrics.Aggregations.AggregateFunctions.CountersAggregateFunction.CountersAggregateFunction() -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.HistogramsAggregateFunction
+Vostok.Metrics.Aggregations.AggregateFunctions.HistogramsAggregateFunction.Add(Vostok.Metrics.Models.MetricEvent event) -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.HistogramsAggregateFunction.Aggregate(System.DateTimeOffset timestamp) -> System.Collections.Generic.IEnumerable<Vostok.Metrics.Models.MetricEvent>
+Vostok.Metrics.Aggregations.AggregateFunctions.HistogramsAggregateFunction.HistogramsAggregateFunction() -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.IAggregateFunction
+Vostok.Metrics.Aggregations.AggregateFunctions.IAggregateFunction.Add(Vostok.Metrics.Models.MetricEvent event) -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.IAggregateFunction.Aggregate(System.DateTimeOffset timestamp) -> System.Collections.Generic.IEnumerable<Vostok.Metrics.Models.MetricEvent>
+Vostok.Metrics.Aggregations.AggregateFunctions.TimersAggregateFunction
+Vostok.Metrics.Aggregations.AggregateFunctions.TimersAggregateFunction.Add(Vostok.Metrics.Models.MetricEvent event) -> void
+Vostok.Metrics.Aggregations.AggregateFunctions.TimersAggregateFunction.Aggregate(System.DateTimeOffset timestamp) -> System.Collections.Generic.IEnumerable<Vostok.Metrics.Models.MetricEvent>
+Vostok.Metrics.Aggregations.AggregateFunctions.TimersAggregateFunction.TimersAggregateFunction() -> void
+Vostok.Metrics.Aggregations.AggregatorApplication
+Vostok.Metrics.Aggregations.AggregatorApplication.AggregatorApplication() -> void
+Vostok.Metrics.Aggregations.AggregatorApplication.InitializeAsync(Vostok.Hosting.Abstractions.IVostokHostingEnvironment environment) -> System.Threading.Tasks.Task
+Vostok.Metrics.Aggregations.AggregatorApplication.RunAsync(Vostok.Hosting.Abstractions.IVostokHostingEnvironment environment) -> System.Threading.Tasks.Task
+Vostok.Metrics.Aggregations.Configuration.AggregatorSecretSettings
+Vostok.Metrics.Aggregations.Configuration.AggregatorSecretSettings.AggregatorSecretSettings() -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSecretSettings.HerculesApiKey.get -> string
+Vostok.Metrics.Aggregations.Configuration.AggregatorSecretSettings.HerculesApiKey.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.AggregatorSettings() -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsLimitMetric.get -> int?
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsLimitMetric.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsReadBatchSize.get -> int
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsReadBatchSize.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsWriteBufferCapacityLimit.get -> int
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.EventsWriteBufferCapacityLimit.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.Lag.get -> System.TimeSpan
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.Lag.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.MaximumDeltaAfterNow.get -> System.TimeSpan
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.MaximumDeltaAfterNow.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.Period.get -> System.TimeSpan
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.Period.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.SourceStream.get -> string
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.SourceStream.set -> void
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.TargetStream.get -> string
+Vostok.Metrics.Aggregations.Configuration.AggregatorSettings.TargetStream.set -> void
+Vostok.Metrics.Aggregations.Helpers.Constants
