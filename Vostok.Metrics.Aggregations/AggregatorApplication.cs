@@ -20,8 +20,8 @@ namespace Vostok.Metrics.Aggregations
     public class AggregatorApplication : IVostokApplication
     {
         private WindowedStreamConsumer<MetricEvent, MetricTags> consumer;
-        private Task writeTask;
-        
+        private StreamBinaryEventsWriter eventsWriter;
+
         public Task InitializeAsync(IVostokHostingEnvironment environment)
         {
             SetupEventsLimitMetric(environment, () => environment.ConfigurationProvider.Get<AggregatorSettings>().EventsLimitMetric);
@@ -41,10 +41,11 @@ namespace Vostok.Metrics.Aggregations
 
             var eventsWriterSettings = new StreamBinaryEventsWriterSettings(binaryWriter, settings.TargetStream)
             {
-                BufferCapacityLimit = settings.EventsWriteBufferCapacityLimit
+                Tracer = environment.Tracer,
+                MetricContext = environment.Metrics.Instance
             };
 
-            var eventsWriter = new StreamBinaryEventsWriter(eventsWriterSettings, environment.Log);
+            eventsWriter = new StreamBinaryEventsWriter(eventsWriterSettings, environment.Log);
 
             var consumerSettings = new WindowedStreamConsumerSettings<MetricEvent, MetricTags>(
                 settings.SourceStream,
@@ -67,12 +68,7 @@ namespace Vostok.Metrics.Aggregations
                 ApplicationMetricContext = environment.Metrics.Application,
                 InstanceMetricContext = environment.Metrics.Instance,
                 StreamApiClientAdditionalSetup = environment.HostExtensions.Get<ClusterClientSetup>(Constants.StreamClientSetupKey),
-                MaximumDeltaAfterNow = settings.MaximumDeltaAfterNow,
-                OnBatchBegin = _ => writeTask?.GetAwaiter().GetResult(),
-                OnBatchEnd = _ =>
-                {
-                    writeTask = eventsWriter.WriteAsync().SilentlyContinue();
-                }
+                MaximumDeltaAfterNow = settings.MaximumDeltaAfterNow
             };
 
             consumer = new WindowedStreamConsumer<MetricEvent, MetricTags>(consumerSettings, environment.Log);
@@ -80,8 +76,11 @@ namespace Vostok.Metrics.Aggregations
             return Task.CompletedTask;
         }
 
-        public Task RunAsync(IVostokHostingEnvironment environment) =>
-            consumer.RunAsync(environment.ShutdownToken);
+        public async Task RunAsync(IVostokHostingEnvironment environment)
+        {
+            await consumer.RunAsync(environment.ShutdownToken);
+            await eventsWriter.FlushAsync();
+        }
 
         private void SetupEventsLimitMetric(IVostokHostingEnvironment environment, Func<int?> limit)
         {

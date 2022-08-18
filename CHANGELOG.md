@@ -1,3 +1,7 @@
+## 0.1.4 (18-08-2022):
+
+Use new `StreamBinaryEventsWriter` interface.
+
 ## 0.1.3 (21-02-2022):
 
 Bugfixes
