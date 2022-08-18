@@ -78,8 +78,8 @@ namespace Vostok.Metrics.Aggregations
 
         public async Task RunAsync(IVostokHostingEnvironment environment)
         {
-            await consumer.RunAsync(environment.ShutdownToken);
-            await eventsWriter.FlushAsync();
+            await consumer.RunAsync(environment.ShutdownToken).ConfigureAwait(false);
+            await eventsWriter.FlushAsync().ConfigureAwait(false);
         }
 
         private void SetupEventsLimitMetric(IVostokHostingEnvironment environment, Func<int?> limit)
