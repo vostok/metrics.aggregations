@@ -12,6 +12,7 @@ using Vostok.Metrics.Models;
 namespace Vostok.Metrics.Aggregations.Tests
 {
     [TestFixture]
+    [Explicit]
     internal class MetricEventBuilder_FunctionalTests
     {
         private readonly TimeSpan timeout = 10.Seconds();

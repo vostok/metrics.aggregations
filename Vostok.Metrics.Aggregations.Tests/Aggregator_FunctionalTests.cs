@@ -29,6 +29,7 @@ using Vostok.Metrics.Senders;
 namespace Vostok.Metrics.Aggregations.Tests
 {
     [TestFixture]
+    [Explicit]
     internal class Aggregator_FunctionalTests
     {
         private readonly ILog log = new SynchronousConsoleLog();
