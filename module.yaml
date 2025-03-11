@@ -7,6 +7,10 @@ notests *default:
 
   install:
     - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+    - groups:
+        - target-framework: "net6.0"
+          libraries:
+            - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
 
   deps:
     - vostok.hosting.abstractions
@@ -47,3 +51,12 @@ full-build > notests:
   build:
     target: Vostok.Metrics.Aggregations.sln
     configuration: Release
+    tool:
+      name: dotnet
+
+  install:
+    - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+    - groups:
+        - target-framework: "net6.0"
+          libraries:
+            - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
