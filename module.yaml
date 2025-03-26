@@ -6,11 +6,11 @@ notests *default:
       name: dotnet
 
   install:
-    - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+    - Vostok.Metrics.Aggregations/bin/Release/net8.0/Vostok.Metrics.Aggregations.dll
     - groups:
-        - target-framework: "net6.0"
+        - target-framework: "net8.0"
           libraries:
-            - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+            - Vostok.Metrics.Aggregations/bin/Release/net8.0/Vostok.Metrics.Aggregations.dll
 
   deps:
     - vostok.hosting.abstractions
@@ -27,7 +27,7 @@ notests *default:
     - vostok.hercules.client.abstractions
     - vostok.hercules.consumers
     - vostok.metrics
-    - vostok.devtools@with-net6.0
+    - vostok.devtools
     - vostok.commons.time/src
     - vostok.commons.helpers/src
 
@@ -55,8 +55,8 @@ full-build > notests:
       name: dotnet
 
   install:
-    - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+    - Vostok.Metrics.Aggregations/bin/Release/net8.0/Vostok.Metrics.Aggregations.dll
     - groups:
-        - target-framework: "net6.0"
+        - target-framework: "net8.0"
           libraries:
-            - Vostok.Metrics.Aggregations/bin/Release/net6.0/Vostok.Metrics.Aggregations.dll
+            - Vostok.Metrics.Aggregations/bin/Release/net8.0/Vostok.Metrics.Aggregations.dll
